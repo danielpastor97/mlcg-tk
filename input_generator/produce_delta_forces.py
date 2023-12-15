@@ -49,7 +49,7 @@ if __name__ == "__main__":
         sub_data_dict = data_dict[dataset]
         dataset_names = names[dataset]
 
-        for name in tqdm(dataset_names[:5]):
+        for name in tqdm(dataset_names):
             data_list = []
             coords = np.load(
                 os.path.join(

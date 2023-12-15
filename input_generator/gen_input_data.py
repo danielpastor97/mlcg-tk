@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
         dataset_names = names[dataset]
 
-        for name in tqdm(dataset_names[:5]):
+        for name in tqdm(dataset_names):
             # create sample object
             pdb_file = sub_data_dict["pdb_file"].format(name)
             
