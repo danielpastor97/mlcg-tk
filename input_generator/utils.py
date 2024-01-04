@@ -156,11 +156,23 @@ def get_terminal_atoms(
     C_term: (Optional)
         Atom used in definition of C-terminus embedding.
     """
+    chains = cg_dataframe.chainID.unique()
+    # all atoms belonging to monopeptide chains will be removed from termini list
+    monopeptide_atoms = []
+    for chain in chains:
+        residues = cg_dataframe.loc[cg_dataframe.chainID == chain].resSeq.unique()
+        if len(residues) == 1:
+            monopeptide_atoms.extend(cg_dataframe.loc[cg_dataframe.chainID == chain].index.to_list())
+
     for prior in prior_dict: 
         if "separate_termini" in prior_dict[prior] and prior_dict[prior]["separate_termini"] == True:
             first_res, last_res = cg_dataframe["resSeq"].min(), cg_dataframe["resSeq"].max()
-            prior_dict[prior]["n_term_atoms"] = cg_dataframe.loc[(cg_dataframe["resSeq"] == first_res)].index.to_list()
-            prior_dict[prior]["c_term_atoms"] = cg_dataframe.loc[(cg_dataframe["resSeq"] == last_res)].index.to_list()
+            n_term_atoms = cg_dataframe.loc[(cg_dataframe["resSeq"] == first_res)].index.to_list()
+            c_term_atoms = cg_dataframe.loc[(cg_dataframe["resSeq"] == last_res)].index.to_list()
+            
+            prior_dict[prior]["n_term_atoms"] = [a for a in n_term_atoms if a not in monopeptide_atoms]
+            prior_dict[prior]["c_term_atoms"] = [a for a in c_term_atoms if a not in monopeptide_atoms]
+            
             if N_term != None:
                 prior_dict[prior]["n_atoms"] = cg_dataframe.loc[
                     (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == N_term)
@@ -168,7 +180,7 @@ def get_terminal_atoms(
             else:
                 prior_dict[prior]["n_atoms"] = cg_dataframe.loc[
                     (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == "N")
-                    ].index.to_list() 
+                    ].index.to_list()
             if N_term != None:
                 prior_dict[prior]["c_atoms"] = cg_dataframe.loc[
                     (cg_dataframe["resSeq"] == last_res) & (cg_dataframe["name"] == C_term)
@@ -176,7 +188,7 @@ def get_terminal_atoms(
             else:
                 prior_dict[prior]["c_atoms"] = cg_dataframe.loc[
                     (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == "C")
-                    ].index.to_list() 
+                    ].index.to_list()
     
     return prior_dict
                 
@@ -225,7 +237,7 @@ def get_edges_and_orders(
             else:
                 all_edges_and_orders.append(edges_and_orders)
                 all_angle_edges.append(edges_and_orders[2])
-    
+
     # get nonbonded priors using bonded and angle edges
     if len(all_bond_edges) != 0:
         all_bond_edges = np.concatenate(all_bond_edges, axis=1)
@@ -320,7 +332,8 @@ def get_dihedral_groups(
     atom_groups = {}
     for chain_idx,chain in enumerate(res_per_chain):
         for res in chain:
-            if any(res.index+ofs < 0 or res.index+ofs >= len(chain) for ofs in offset):
+            res_idx = chain.index(res)
+            if any(res_idx+ofs < 0 or res_idx+ofs >= len(chain) for ofs in offset):
                 continue
             if any(atom not in [a.name for a in res.atoms] for atom in atoms_needed):
                 continue
@@ -332,5 +345,5 @@ def get_dihedral_groups(
                 atom_idx = top.select(f"(chainid {chain_idx}) and (resid {res.index+offset[i]}) and (name {atom})")
                 dihedral.append(atom_idx)
             atom_groups[label].append(np.concatenate(dihedral))
-    
+            
     return atom_groups

@@ -23,11 +23,13 @@ def parse_cli():
     parser.add_argument(
         "--data_dict", 
         type=str,
+        nargs="+",
         help="Configuration file containing sub-dataset parameters and prior terms.", 
     )
     parser.add_argument(
         "--names", 
         type=str,
+        nargs="+",
         help="Sample names for each sub-dataset in data_dict.", 
     )
     parser.add_argument(
@@ -41,15 +43,19 @@ if __name__ == "__main__":
     parser = parse_cli()
     args = parser.parse_args()
     
-    data_dict = yaml.safe_load(open(args.data_dict, "rb"))
-    names = yaml.safe_load(open(args.names, "rb"))
+    data_dict_list = [yaml.safe_load(open(dict, "rb")) for dict in args.data_dict]
+    data_dict = {k: v for d in data_dict_list for k, v in d.items()}
+    
+    names_list = [yaml.safe_load(open(dict, "rb")) for dict in args.names]
+    names = {k: v for d in names_list for k, v in d.items()}
+
     prior_model = torch.load(open(args.prior_model, "rb")).models
 
     for dataset in data_dict.keys():
         sub_data_dict = data_dict[dataset]
         dataset_names = names[dataset]
 
-        for name in tqdm(dataset_names):
+        for name in tqdm(dataset_names, f"Producing delta froces for {dataset} dataset..."):
             data_list = []
             coords = np.load(
                 os.path.join(

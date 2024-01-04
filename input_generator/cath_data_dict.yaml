@@ -2,7 +2,7 @@ CATH:
   sample_class: CATH_Sample
   base_tag: cath_
   base_dir: /import/a12/users/nickc/updated_cath/
-  save_dir: /import/a12/users/aguljas/mlcg_base_cg_data/test_pipeline/
+  save_dir: /net/scratch-sheldon/aguljas/mlcg_training_data/
   pdb_file: /import/a12/users/nickc/updated_cath/pdbs/{}_eq.pdb
   cg_atoms:
   - N
@@ -17,4 +17,4 @@ CATH:
   - NME
   use_terminal_embeddings: false
   mapping: slice_aggregate
-  prior_tag: test_pipeline
+  prior_tag: cgschnet

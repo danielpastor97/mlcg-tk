@@ -14,6 +14,7 @@ import warnings
 import os
 from natsort import natsorted 
 from glob import glob
+import h5py
 
 from embedding_maps import *
 
@@ -314,7 +315,7 @@ class TrainingSample(object):
                 C_term=self.C_term
                 )
         
-        # get connectivity matrix for bond, angle, and nonbonded prior terms
+        # get atom groups for edges and orders for all prior terms
         cg_top = self.aa_traj.atom_slice(self.cg_atom_indices).topology
         
         all_edges_and_orders = get_edges_and_orders(
@@ -329,11 +330,6 @@ class TrainingSample(object):
             else x[2].type(torch.LongTensor) for x in all_edges_and_orders
         ]
 
-        for tag, order, edge in zip(tags, orders, edges):
-            try:
-                tag: make_neighbor_list(tag, order, edge)
-            except RuntimeError:
-                print(tag, order, edge.shape)
         prior_nls = {
             tag: make_neighbor_list(tag, order, edge)
             for tag, order, edge in zip(tags, orders, edges)
@@ -345,7 +341,7 @@ class TrainingSample(object):
                 ofile,"wb") as pfile:
                 pickle.dump(prior_nls, pfile)
         
-        return prior_nls
+        return #prior_nls
     
 
 class CATH_Sample(TrainingSample):
@@ -359,8 +355,8 @@ class CATH_Sample(TrainingSample):
     
     def load_coords_forces(
             self,
-            base_dir,
-    ) -> Tuple:
+            base_dir: str="/import/a12/users/nickc/updated_cath/",
+    ) -> Tuple[np.ndarray, np.ndarray]:
         #return sorted(name, key=alphanum_key)
         outputs_fns = natsorted(glob(
             os.path.join(base_dir, f"output/{self.name}/*_part_*")
@@ -381,5 +377,112 @@ class CATH_Sample(TrainingSample):
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces
 
+
+class CATH_ext_Sample(TrainingSample):
+    def __init__(
+            self, 
+            name: str, 
+            tag: str,
+            pdb_fn: str
+    ) -> None:
+        pdb = glob(pdb_fn)[0]
+        super().__init__(name, tag, pdb)
     
+    def load_coords_forces(
+            self, 
+            base_dir: str = "/net/scratch-sheldon/sayeg84/cath_simuls_v2/"
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        traj_dirs = glob(
+            os.path.join(base_dir, f"group_*/{self.name}_*/")
+            )
+        all_coords = []
+        all_forces = []
+        for traj_dir in traj_dirs:
+            traj_coords = []
+            traj_forces = []
+            fns = glob(
+                os.path.join(traj_dir, "prod_out_full_output/*.npz")
+            )
+            fns.sort(key = lambda file : int(file.split("_")[-2]))
+            last_parent_id = None
+            for fn in fns:
+                np_dict = np.load(fn,allow_pickle=True)
+                current_id = np_dict['id']
+                parent_id = np_dict['parent_id']
+                if parent_id  is not None:
+                    assert parent_id == last_parent_id
+                traj_coords.append(np_dict['coords'])
+                traj_forces.append(np_dict['Fs'])
+                last_parent_id = current_id
+            traj_full_coords = np.concatenate(traj_coords)
+            traj_full_forces = np.concatenate(traj_forces)
+            if traj_full_coords.shape[0] != 25000:
+                continue
+            else:
+                all_coords.append(traj_full_coords)
+                all_forces.append(traj_full_forces)
+        full_coords = np.concatenate(all_coords)
+        full_forces = np.concatenate(all_forces)
+        return full_coords, full_forces
+
+
+class DIMER_Sample(TrainingSample):
+    def __init__(
+            self, 
+            name: str, 
+            tag: str,
+            pdb_fn: str
+    ) -> None:
+        super().__init__(name, tag, pdb_fn)
+    
+    def load_coords_forces(
+            self,
+            base_dir: str="/import/a12/users/aguljas/two_peptides/data/"
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        with h5py.File(
+            os.path.join(base_dir, "allatom.h5"), 
+            "r"
+            ) as data:    
+            coord = data["MINI"][self.name]["aa_coords"][:]
+            force = data["MINI"][self.name]["aa_forces"][:]
+
+        # convert to kcal/mol/angstrom and angstrom
+        # from kJ/mol/nm and nm
+        coord = coord*10
+        force = force/41.84
+
+        return coord, force
+    
+
+class DIMER_ext_Sample(TrainingSample):
+    def __init__(
+            self, 
+            name: str, 
+            tag: str,
+            pdb_fn: str
+    ) -> None:
+        pdb = glob(pdb_fn)[0]
+        super().__init__(name, tag, pdb)
+
+    def load_coords_forces(
+            self,
+            base_dir: str="/import/a12/users/ac7165fu/"
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        
+        coord = np.load(
+            glob(os.path.join(base_dir, f"dip_dimers_*/data/{self.name}_coord.npy"))[0],
+            allow_pickle=True
+            )
+        force = np.load(
+            glob(os.path.join(base_dir, f"dip_dimers_*/data/{self.name}_force.npy"))[0],
+            allow_pickle=True
+            )
+        
+        # convert to kcal/mol/angstrom and angstrom
+        # from kJ/mol/nm and nm
+        coord = coord*10
+        force = force/41.84
+
+        return coord, force
+
 

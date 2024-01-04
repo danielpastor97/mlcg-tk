@@ -34,11 +34,25 @@ def standard_bonds(
         n_term_bonds, c_term_bonds, bulk_bonds = split_bulk_termini(
             n_term_atoms, c_term_atoms, bond_edges
         )
-        return [("n_term_bonds", 2, n_term_bonds), 
-                ("bulk_bonds", 2, bulk_bonds),
-                ("c_term_bonds", 2, c_term_bonds)]
+
+        if len(bulk_bonds) == 0:
+            bonds = [("n_term_bonds", 2, n_term_bonds), 
+                     ("bulk_bonds", 2, torch.tensor([]).reshape(2, 0)),
+                     ("c_term_bonds", 2, c_term_bonds)]
+
+        elif len(n_term_bonds) == 0 or len(c_term_bonds) == 0:
+            bonds = [("n_term_bonds", 2, torch.tensor([]).reshape(2, 0)), 
+                     ("bulk_bonds", 2, bulk_bonds),
+                     ("c_term_bonds", 2, torch.tensor([]).reshape(2, 0))]
+        else:
+            bonds = [("n_term_bonds", 2, n_term_bonds), 
+                    ("bulk_bonds", 2, bulk_bonds),
+                    ("c_term_bonds", 2, c_term_bonds)]
+                    
     else:
-        return ("bonds", 2, bond_edges)
+        bonds = ("bonds", 2, bond_edges)
+        
+    return bonds
 
 
 def standard_angles(
@@ -55,11 +69,23 @@ def standard_angles(
         n_term_angles, c_term_angles, bulk_angles = split_bulk_termini(
             n_term_atoms, c_term_atoms, angle_edges
         )
-        return [("n_term_angles", 3, n_term_angles), 
-                ("bulk_angles", 3, bulk_angles),
-                ("c_term_angles", 3, c_term_angles)]
+        if len(bulk_angles) == 0:
+            angles = [("n_term_angles", 3, n_term_angles), 
+                     ("bulk_angles", 3, torch.tensor([]).reshape(3, 0)),
+                     ("c_term_angles", 3, c_term_angles)]
+
+        elif len(n_term_angles) == 0 or len(c_term_angles) == 0:
+            angles = [("n_term_angles", 3, torch.tensor([]).reshape(3, 0)), 
+                     ("bulk_angles", 3, bulk_angles),
+                     ("c_term_angles", 3, torch.tensor([]).reshape(3, 0))]
+        else:
+            angles = [("n_term_angles", 3, n_term_angles), 
+                    ("bulk_angles", 3, bulk_angles),
+                    ("c_term_angles", 3, c_term_angles)]
     else:
-        return ("angles", 3, angle_edges)
+        angles = ("angles", 3, angle_edges)
+    
+    return angles
     
 
 def non_bonded(
@@ -81,7 +107,7 @@ def non_bonded(
     pairs_parsed = np.array([
         p for p in fully_connected_edges.T
             if (abs(topology.atom(p[0]).residue.index - topology.atom(p[1]).residue.index) >= res_exclusion)
-            and (len(bidirectional_shortest_path(graph, p[0], p[1])) >= min_pair)
+            and (graph.has_edge(p[0], p[1]) == False or len(bidirectional_shortest_path(graph, p[0], p[1])) >= min_pair)
             and not np.all(bond_edges == p[:, None], axis=0).any()
             and not np.all(angle_edges[[0,2],:] == p[:, None], axis=0).any()
     ])
@@ -159,8 +185,12 @@ def omega(
             pro_omega.extend(atom_groups)
         else:
             non_pro_omega.extend(atom_groups)
-    dihedrals = [("pro_omega", 4, torch.tensor(np.array(pro_omega)).T),
-                 ("non_pro_omega", 4, torch.tensor(np.array(non_pro_omega)).T)]
+    dihedrals = []
+    for dihedral in ["pro_omega", "non_pro_omega"]:
+        if len(eval(dihedral)) == 0:
+            dihedrals.append((dihedral, 4, torch.tensor([]).reshape(4, 0)))
+        else:
+            dihedrals.append((dihedral, 4, torch.tensor(np.array(eval(dihedral))).T))
     return dihedrals
     
 
@@ -174,8 +204,11 @@ def gamma_1(
     atom_groups = []
     for res in dihedral_dict:
         atom_groups.extend(dihedral_dict[res])
-    dihedrals = ("gamma_1", 4, torch.tensor(np.array(atom_groups)).T)
-    return dihedrals
+    if len(atom_groups) == 0:
+        dihedrals = ("gamma_1", 4, torch.tensor([]).reshape(4, 0))
+    else:
+        dihedrals = ("gamma_1", 4, torch.tensor(np.array(atom_groups)).T)
+    return dihedrals   
 
 
 def gamma_2(
@@ -188,5 +221,8 @@ def gamma_2(
     atom_groups = []
     for res in dihedral_dict:
         atom_groups.extend(dihedral_dict[res])
-    dihedrals = ("gamma_2", 4, torch.tensor(np.array(atom_groups)).T)
+    if len(atom_groups) == 0:
+        dihedrals = ("gamma_2", 4, torch.tensor([]).reshape(4, 0))
+    else:
+        dihedrals = ("gamma_2", 4, torch.tensor(np.array(atom_groups)).T)
     return dihedrals    
