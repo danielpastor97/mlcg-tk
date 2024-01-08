@@ -18,3 +18,4 @@ CATH:
   use_terminal_embeddings: false
   mapping: slice_aggregate
   prior_tag: cgschnet
+  batch_size: 100

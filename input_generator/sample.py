@@ -341,7 +341,7 @@ class TrainingSample(object):
                 ofile,"wb") as pfile:
                 pickle.dump(prior_nls, pfile)
         
-        return #prior_nls
+        return prior_nls
     
 
 class CATH_Sample(TrainingSample):

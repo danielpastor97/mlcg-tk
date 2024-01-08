@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from mlcg.data.atomic_data import AtomicData
-from mlcg.datasets.utils import remove_baseline_forces, chunker
+from mlcg.datasets.utils import remove_baseline_forces
 
 from sample import *
 from prior_terms import *
@@ -37,11 +37,20 @@ def parse_cli():
         type=str,
         help="Pytorch file in which prior model is saved.", 
     )
+    parser.add_argument(
+        "--device",
+        default="cpu",
+        required=False,
+        type=str,
+        help="Optional arguement to set device on which delta forces will be calculated."
+    )
     return parser
 
 if __name__ == "__main__":
     parser = parse_cli()
     args = parser.parse_args()
+
+    device = args.device
     
     data_dict_list = [yaml.safe_load(open(dict, "rb")) for dict in args.data_dict]
     data_dict = {k: v for d in data_dict_list for k, v in d.items()}
@@ -49,13 +58,13 @@ if __name__ == "__main__":
     names_list = [yaml.safe_load(open(dict, "rb")) for dict in args.names]
     names = {k: v for d in names_list for k, v in d.items()}
 
-    prior_model = torch.load(open(args.prior_model, "rb")).models
+    prior_model = torch.load(open(args.prior_model, "rb")).models.to(device)
 
     for dataset in data_dict.keys():
         sub_data_dict = data_dict[dataset]
         dataset_names = names[dataset]
 
-        for name in tqdm(dataset_names, f"Producing delta froces for {dataset} dataset..."):
+        for name in tqdm(dataset_names, f"Producing delta forces for {dataset} dataset..."):
             data_list = []
             coords = np.load(
                 os.path.join(
@@ -93,16 +102,32 @@ if __name__ == "__main__":
                 )
                 data_list.append(data)
             
-            batch_size = 1000
-            chunks = tuple(chunker(data_list, batch_size))
-            for sub_data_list in tqdm(chunks, "Removing baseline forces"):
+            if "batch_size" in sub_data_dict:
+                batch_size = sub_data_dict["batch_size"]
+            else:
+                batch_size = 100
+
+            num_frames = coords.shape[0]
+            delta_forces = []
+            for i in range(0, num_frames, batch_size):
+                sub_data_list = []
+                for j in range(batch_size):
+                    data = AtomicData.from_points(
+                            pos=torch.tensor(coords[i+j]),
+                            forces=torch.tensor(forces[i+j]),
+                            atom_types=torch.tensor(embeds),
+                            masses=None,
+                            neighborlist=nls,
+                    )
+                    sub_data_list.append(data.to(device))
+                sub_data_list = tuple(sub_data_list)
                 _ = remove_baseline_forces(
                     sub_data_list,
                     prior_model,
                 )
-            delta_forces = []
-            for i in range(num_frames):
-                delta_forces.append(data_list[i].forces.detach().numpy())
+                for j in range(batch_size):
+                    delta_force = sub_data_list[j].forces.detach().cpu()
+                    delta_forces.append(delta_force.numpy())
 
             np.save(
                 os.path.join(
