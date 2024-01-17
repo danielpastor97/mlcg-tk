@@ -12,19 +12,17 @@ from aggforce import linearmap as lm
 from aggforce import agg as ag
 from aggforce import constfinder as cf
 
-from embedding_maps import *
-
 
 def map_cg_topology(
-        atom_df: pd.DataFrame, 
-        cg_atoms: List[str], 
+        atom_df: pd.DataFrame,
+        cg_atoms: List[str],
         embedding_function: str,
         skip_residues: Optional[Union[List,str]] = None,
 ) -> pd.DataFrame:
     """
     Parameters
     ----------
-    atom_df: 
+    atom_df:
         Pandas DataFrame row from mdTraj topology.
     cg_atoms:
         List of atoms needed in CG mapping.
@@ -35,8 +33,8 @@ def map_cg_topology(
     skip_residues:
         Optional list of residues to skip when assigning CG atoms (can be used to skip caps for example);
         As of now, this skips all instances of a given residue.
-    
-    
+
+
     Returns
     -------
     New DataFrame columns indicating atom involvement in CG mapping and type assignment.
@@ -45,7 +43,7 @@ def map_cg_topology(
     -------
     First obtain a Pandas DataFrame object using the built-in MDTraj function:
     >>> top_df = aa_traj.topology.to_dataframe()[0]
-    
+
     For a five-bead resolution mapping without including caps:
     >>> cg_atoms = ["N", "CA", "CB", "C", "O"]
     >>> embedding_function = embedding_fivebead
@@ -57,14 +55,14 @@ def map_cg_topology(
     if isinstance(embedding_function, str):
         try:
             embedding_function = eval(embedding_function)
-        except NameError: 
+        except NameError:
             print("The specified embedding function has not been defined.")
             exit
     name, res = atom_df["name"], atom_df["resName"]
     if skip_residues != None and res in skip_residues:
         atom_df["mapped"] = False
         atom_df["type"] = "NA"
-    
+
     else:
         if name in cg_atoms:
             atom_df["mapped"] = True
@@ -73,7 +71,7 @@ def map_cg_topology(
         else:
             atom_df["mapped"] = False
             atom_df["type"] = "NA"
-    
+
     return atom_df
 
 
@@ -97,10 +95,10 @@ def slice_coord_forces(
         Mapping scheme to be used, must be either 'slice_aggregate' or 'slice_optimize'.
     force_stride:
         Striding to use for force projection results
-    
+
     Returns
     -------
-    Coarse-grained coordinates and forces 
+    Coarse-grained coordinates and forces
     '''
     config_map = lm.LinearMap(cg_map)
     config_map_matrix = config_map.standard_matrix
@@ -130,7 +128,7 @@ def slice_coord_forces(
         )
     else:
         raise RuntimeError(f"Force mapping {mapping} is neither 'slice_aggregate' nor 'slice_optimize'.")
-    
+
     force_map_matrix = force_agg_results["map"].standard_matrix
     cg_coords = config_map_matrix @ coords
     cg_forces = force_map_matrix @ forces
@@ -139,10 +137,10 @@ def slice_coord_forces(
 
 
 def get_terminal_atoms(
-        prior_dict: Dict, 
-        cg_dataframe: pd.DataFrame, 
-        N_term: Union[None,str]=None, 
-        C_term: Union[None,str]=None, 
+        prior_dict: Dict,
+        cg_dataframe: pd.DataFrame,
+        N_term: Union[None,str]=None,
+        C_term: Union[None,str]=None,
 ) -> Dict:
     """
     Parameters
@@ -164,15 +162,15 @@ def get_terminal_atoms(
         if len(residues) == 1:
             monopeptide_atoms.extend(cg_dataframe.loc[cg_dataframe.chainID == chain].index.to_list())
 
-    for prior in prior_dict: 
+    for prior in prior_dict:
         if "separate_termini" in prior_dict[prior] and prior_dict[prior]["separate_termini"] == True:
             first_res, last_res = cg_dataframe["resSeq"].min(), cg_dataframe["resSeq"].max()
             n_term_atoms = cg_dataframe.loc[(cg_dataframe["resSeq"] == first_res)].index.to_list()
             c_term_atoms = cg_dataframe.loc[(cg_dataframe["resSeq"] == last_res)].index.to_list()
-            
+
             prior_dict[prior]["n_term_atoms"] = [a for a in n_term_atoms if a not in monopeptide_atoms]
             prior_dict[prior]["c_term_atoms"] = [a for a in c_term_atoms if a not in monopeptide_atoms]
-            
+
             if N_term != None:
                 prior_dict[prior]["n_atoms"] = cg_dataframe.loc[
                     (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == N_term)
@@ -189,12 +187,12 @@ def get_terminal_atoms(
                 prior_dict[prior]["c_atoms"] = cg_dataframe.loc[
                     (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == "C")
                     ].index.to_list()
-    
+
     return prior_dict
-                
+
 
 def get_edges_and_orders(
-        prior_dict: Dict, 
+        prior_dict: Dict,
         topology: md.Topology,
 ) -> List:
     """
@@ -206,7 +204,7 @@ def get_edges_and_orders(
         MDTraj topology object from which atom groups defining each prior term will be created.
     cg_dataframe:
         Dataframe of CG topology (from MDTraj topology object).
-    
+
     Returns
     -------
     List of edges, orders, and tag for each prior term specified in prior_dict.
@@ -251,7 +249,7 @@ def get_edges_and_orders(
             all_edges_and_orders.extend(edges_and_orders)
         else:
             all_edges_and_orders.append(edges_and_orders)
-    
+
     # process dihedral priors
     dihedral_dicts = [prior for prior in prior_dict if prior_dict[prior]["type"] == "dihedrals"]
     for dihdict in dihedral_dicts:
@@ -260,25 +258,25 @@ def get_edges_and_orders(
             all_edges_and_orders.extend(edges_and_orders)
         else:
             all_edges_and_orders.append(edges_and_orders)
-    
+
     return all_edges_and_orders
 
 
 def split_bulk_termini(
-        N_term, 
-        C_term, 
+        N_term,
+        C_term,
         all_edges
 ) -> Tuple:
     '''
     Parameters
     ----------
-    N_term: 
+    N_term:
         List of atom indices to be split as part of the N-terminal.
-    C_term: 
+    C_term:
         List of atom indices to be split as part of the C-terminal.
     all_edges:
         All atom groups forming part of prior term.
-    
+
     Returns
     -------
     Separated edges for bulk and terminal groups
@@ -295,9 +293,9 @@ def split_bulk_termini(
     return n_term_edges, c_term_edges, bulk_edges
 
 def get_dihedral_groups(
-        top: md.Topology, 
-        atoms_needed: List[str], 
-        offset: List[int], 
+        top: md.Topology,
+        atoms_needed: List[str],
+        offset: List[int],
         tag: Optional[str]
 ) -> Dict:
     """
@@ -311,7 +309,7 @@ def get_dihedral_groups(
         Residue offset of each atom in atoms_needed from starting point.
     tag:
         Dihedral prior tag.
-    
+
     Returns
     -------
     Dictionary of atom groups for each residue corresponding to dihedrals.
@@ -345,5 +343,5 @@ def get_dihedral_groups(
                 atom_idx = top.select(f"(chainid {chain_idx}) and (resid {res.index+offset[i]}) and (name {atom})")
                 dihedral.append(atom_idx)
             atom_groups[label].append(np.concatenate(dihedral))
-            
+
     return atom_groups

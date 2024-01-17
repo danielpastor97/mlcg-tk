@@ -1,3 +1,5 @@
+from typing import Dict
+
 embedding_map_fivebead = {
     "ALA": 1,
     "CYS": 2,
@@ -25,6 +27,15 @@ embedding_map_fivebead = {
     "C": 23,
     "O": 24,
 }
+
+class CGEmbeddingMap(dict):
+    def __init__(self, embedding_map_dict:Dict[str, int]):
+        for k,v in embedding_map_dict.items():
+            self[k] = v
+
+class CGEmbeddingMapFiveBead(CGEmbeddingMap):
+    def __init__(self):
+        super().__init__(embedding_map_fivebead)
 
 
 all_residues = ['ALA',

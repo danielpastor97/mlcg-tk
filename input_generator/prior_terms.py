@@ -16,8 +16,8 @@ from mlcg.geometry.topology import (
     get_n_paths,
 )
 
-from utils import get_dihedral_groups, split_bulk_termini
-from embedding_maps import all_residues
+from .utils import get_dihedral_groups, split_bulk_termini
+from .embedding_maps import all_residues
 
 
 def standard_bonds(
@@ -27,7 +27,7 @@ def standard_bonds(
 ) -> Union[List[Tuple[str, int, torch.Tensor]], Tuple[str, int, torch.Tensor]]:
     mlcg_top = Topology.from_mdtraj(topology)
     conn_mat = get_connectivity_matrix(mlcg_top).numpy()
-    bond_edges = get_n_paths(conn_mat, n=2).numpy() 
+    bond_edges = get_n_paths(conn_mat, n=2).numpy()
 
     if separate_termini:
         n_term_atoms, c_term_atoms = kwargs["n_term_atoms"], kwargs["c_term_atoms"]
@@ -36,22 +36,22 @@ def standard_bonds(
         )
 
         if len(bulk_bonds) == 0:
-            bonds = [("n_term_bonds", 2, n_term_bonds), 
+            bonds = [("n_term_bonds", 2, n_term_bonds),
                      ("bulk_bonds", 2, torch.tensor([]).reshape(2, 0)),
                      ("c_term_bonds", 2, c_term_bonds)]
 
         elif len(n_term_bonds) == 0 or len(c_term_bonds) == 0:
-            bonds = [("n_term_bonds", 2, torch.tensor([]).reshape(2, 0)), 
+            bonds = [("n_term_bonds", 2, torch.tensor([]).reshape(2, 0)),
                      ("bulk_bonds", 2, bulk_bonds),
                      ("c_term_bonds", 2, torch.tensor([]).reshape(2, 0))]
         else:
-            bonds = [("n_term_bonds", 2, n_term_bonds), 
+            bonds = [("n_term_bonds", 2, n_term_bonds),
                     ("bulk_bonds", 2, bulk_bonds),
                     ("c_term_bonds", 2, c_term_bonds)]
-                    
+
     else:
         bonds = ("bonds", 2, bond_edges)
-        
+
     return bonds
 
 
@@ -62,7 +62,7 @@ def standard_angles(
 ) -> Union[List[Tuple[str, int, torch.Tensor]], Tuple[str, int, torch.Tensor]]:
     mlcg_top = Topology.from_mdtraj(topology)
     conn_mat = get_connectivity_matrix(mlcg_top).numpy()
-    angle_edges = get_n_paths(conn_mat, n=3).numpy() 
+    angle_edges = get_n_paths(conn_mat, n=3).numpy()
 
     if separate_termini:
         n_term_atoms, c_term_atoms = kwargs["n_term_atoms"], kwargs["c_term_atoms"]
@@ -70,37 +70,37 @@ def standard_angles(
             n_term_atoms, c_term_atoms, angle_edges
         )
         if len(bulk_angles) == 0:
-            angles = [("n_term_angles", 3, n_term_angles), 
+            angles = [("n_term_angles", 3, n_term_angles),
                      ("bulk_angles", 3, torch.tensor([]).reshape(3, 0)),
                      ("c_term_angles", 3, c_term_angles)]
 
         elif len(n_term_angles) == 0 or len(c_term_angles) == 0:
-            angles = [("n_term_angles", 3, torch.tensor([]).reshape(3, 0)), 
+            angles = [("n_term_angles", 3, torch.tensor([]).reshape(3, 0)),
                      ("bulk_angles", 3, bulk_angles),
                      ("c_term_angles", 3, torch.tensor([]).reshape(3, 0))]
         else:
-            angles = [("n_term_angles", 3, n_term_angles), 
+            angles = [("n_term_angles", 3, n_term_angles),
                     ("bulk_angles", 3, bulk_angles),
                     ("c_term_angles", 3, c_term_angles)]
     else:
         angles = ("angles", 3, angle_edges)
-    
+
     return angles
-    
+
 
 def non_bonded(
-        topology: md.Topology, 
-        bond_edges: Union[np.array, List], 
-        angle_edges: Union[np.array, List], 
-        min_pair: int=6, 
-        res_exclusion: int=1, 
+        topology: md.Topology,
+        bond_edges: Union[np.array, List],
+        angle_edges: Union[np.array, List],
+        min_pair: int=6,
+        res_exclusion: int=1,
         separate_termini: bool=False,
         **kwargs
 ) -> Union[List[Tuple[str, int, torch.Tensor]], Tuple[str, int, torch.Tensor]]:
     mlcg_top = Topology.from_mdtraj(topology)
     fully_connected_edges = _symmetrise_distance_interaction(
         mlcg_top.fully_connected2torch()
-    ).numpy() 
+    ).numpy()
     conn_mat = get_connectivity_matrix(mlcg_top).numpy()
     graph = nx.Graph(conn_mat)
 
@@ -127,12 +127,12 @@ def non_bonded(
         n_term_nonbonded, c_term_nonbonded, bulk_nonbonded = split_bulk_termini(
             n_atoms, c_atoms, non_bonded_edges
         )
-        return [("n_term_nonbonded", 2, n_term_nonbonded), 
+        return [("n_term_nonbonded", 2, n_term_nonbonded),
                 ("bulk_nonbonded", 2, bulk_nonbonded),
                 ("c_term_nonbonded", 2, c_term_nonbonded)]
     else:
         return ("non_bonded", 2, non_bonded_edges)
-    
+
 
 def phi(
         topology: md.Topology,
@@ -192,7 +192,7 @@ def omega(
         else:
             dihedrals.append((dihedral, 4, torch.tensor(np.array(eval(dihedral))).T))
     return dihedrals
-    
+
 
 def gamma_1(
         topology: md.Topology,
@@ -208,7 +208,7 @@ def gamma_1(
         dihedrals = ("gamma_1", 4, torch.tensor([]).reshape(4, 0))
     else:
         dihedrals = ("gamma_1", 4, torch.tensor(np.array(atom_groups)).T)
-    return dihedrals   
+    return dihedrals
 
 
 def gamma_2(
@@ -225,4 +225,4 @@ def gamma_2(
         dihedrals = ("gamma_2", 4, torch.tensor([]).reshape(4, 0))
     else:
         dihedrals = ("gamma_2", 4, torch.tensor(np.array(atom_groups)).T)
-    return dihedrals    
+    return dihedrals

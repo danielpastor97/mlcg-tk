@@ -5,20 +5,15 @@ from typing import List, Dict, Tuple, Optional, Union
 from copy import deepcopy
 import numpy as np
 import torch
+import warnings
+import os
 
 from mlcg.neighbor_list.neighbor_list import make_neighbor_list
 
-from utils import map_cg_topology, slice_coord_forces, get_terminal_atoms, get_edges_and_orders
-from prior_terms import *
-import warnings
-import os
-from natsort import natsorted 
-from glob import glob
-import h5py
+from .utils import map_cg_topology, slice_coord_forces, get_terminal_atoms, get_edges_and_orders
 
-from embedding_maps import *
 
-class TrainingSample(object):
+class SampleCollection:
     """
     Input generation object for loading, manupulating, and saving training data samples.
 
@@ -32,8 +27,8 @@ class TrainingSample(object):
         File location of atomistic structure to be used for topology.
     """
     def __init__(
-            self, 
-            name: str, 
+            self,
+            name: str,
             tag: str,
             pdb_fn: str
     ) -> None:
@@ -44,10 +39,10 @@ class TrainingSample(object):
         self.top_dataframe = self.aa_traj.topology.to_dataframe()[0]
 
     def apply_cg_mapping(
-            self, 
-            cg_atoms: List[str], 
-            embedding_function: str, 
-            embedding_dict: str, 
+            self,
+            cg_atoms: List[str],
+            embedding_function: str,
+            embedding_dict: str,
             skip_residues: Optional[List[str]]=None
     ):
         """
@@ -56,7 +51,7 @@ class TrainingSample(object):
         Parameters
         ----------
         cg_atoms:
-            List of atom names to preserve in CG representation. 
+            List of atom names to preserve in CG representation.
         embedding_function:
             Name of function (should be defined in embedding_maps) to apply CG mapping.
         embedding_dict:
@@ -69,10 +64,10 @@ class TrainingSample(object):
             self.embedding_dict = eval(embedding_dict)
 
         self.top_dataframe = self.top_dataframe.apply(
-            map_cg_topology, 
-            axis=1, 
-            cg_atoms=cg_atoms, 
-            embedding_function=embedding_function, 
+            map_cg_topology,
+            axis=1,
+            cg_atoms=cg_atoms,
+            embedding_function=embedding_function,
             skip_residues=skip_residues
         )
         cg_df= deepcopy(self.top_dataframe.loc[self.top_dataframe["mapped"] == True])
@@ -98,8 +93,8 @@ class TrainingSample(object):
         self.C_term = None
 
     def add_terminal_embeddings(
-            self, 
-            N_term: Union[str,None]="N", 
+            self,
+            N_term: Union[str,None]="N",
             C_term: Union[str,None]="C"
     ):
         """
@@ -112,10 +107,10 @@ class TrainingSample(object):
         C_term:
             Atom of C-terminus to which C_term embedding will be assigned.
 
-        Either of N_term and/or C_term can be None; in this case only one (or no) terminal embedding(s) will be assigned.   
+        Either of N_term and/or C_term can be None; in this case only one (or no) terminal embedding(s) will be assigned.
         """
         df_cg = self.cg_dataframe
-        # proteins with multiple chains will have multiple N- and C-termini 
+        # proteins with multiple chains will have multiple N- and C-termini
         self.N_term = N_term
         self.C_term = C_term
         if N_term != None:
@@ -136,24 +131,16 @@ class TrainingSample(object):
             for idx in C_term_atom:
                 self.cg_dataframe.at[idx, "type"] = self.embedding_dict["C_term"]
 
-    def load_coords_forces():
-        """
-        This function must be implemented in a subclass in order to load and manipulate coordinates and forces.
-        If not implemented, coordinates/forces can be loaded directly and passed to further steps manually;
-        otherwise, only CG structure, embedding, and neighbourlist information will be processed.
-        """
-        raise NotImplementedError
-        
     def process_coords_forces(
-            self, 
-            coords: np.ndarray, 
-            forces: np.ndarray, 
-            mapping: str="slice_aggregate", 
+            self,
+            coords: np.ndarray,
+            forces: np.ndarray,
+            mapping: str="slice_aggregate",
             force_stride: int=100
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Maps coordinates and forces to CG resolution
-        
+
         Parameters
         ----------
         coords: [n_frames, n_atoms, 3]
@@ -183,10 +170,10 @@ class TrainingSample(object):
             return cg_coords, cg_forces
 
     def save_cg_output(
-            self, 
-            save_dir: str, 
-            save_coord_force: bool=True, 
-            cg_coords: Union[np.ndarray,None]=None, 
+            self,
+            save_dir: str,
+            save_coord_force: bool=True,
+            cg_coords: Union[np.ndarray,None]=None,
             cg_forces: Union[np.ndarray,None]=None
     ):
         """
@@ -219,14 +206,14 @@ class TrainingSample(object):
         np.save(f"{save_templ}_cg_embeds.npy", embeds)
 
         if save_coord_force:
-            if cg_coords == None: 
+            if cg_coords == None:
                 if not hasattr(self, "cg_coords"):
                     print("No coordinates found; only CG structure, embeddings and loaded forces will be saved.")
                 else:
                     np.save(f"{save_templ}_cg_coords.npy", self.cg_coords)
             else:
                 np.save(f"{save_templ}_cg_coords.npy", cg_coords)
-            
+
             if cg_forces == None:
                 if not hasattr(self, "cg_forces"):
                     print("No forces found;  only CG structure, embeddings, and loaded coordinates will be saved.")
@@ -234,11 +221,11 @@ class TrainingSample(object):
                     np.save(f"{save_templ}_cg_forces.npy", self.cg_forces)
             else:
                 np.save(f"{save_templ}_cg_forces.npy", cg_forces)
-        
+
     def get_prior_terms(
-            self, 
-            prior_dict: Dict, 
-            save_nls: bool=True, 
+            self,
+            prior_dict: Dict,
+            save_nls: bool=True,
             **kwargs
     ) -> Dict:
         """
@@ -247,23 +234,23 @@ class TrainingSample(object):
         Parameters
         ----------
         prior_dict:
-            Dictionary of prior terms and their corresponding parameters. 
+            Dictionary of prior terms and their corresponding parameters.
             Must minimally contain the following information for each key:
-            
+
             str(prior_name) : {
                 "type" : string specifying type as one of 'bonds', 'angles', 'dihedrals', 'non_bonded'
                 "prior_function" : name of a function implemented in priors.py which will be used to collect
-                            atom groups associated with the prior term. 
+                            atom groups associated with the prior term.
                 ...
                 }
         save_nls:
-            If true, will save an output of the molecule's neighbourlist. 
+            If true, will save an output of the molecule's neighbourlist.
         kwargs:
-            save_dir: 
+            save_dir:
                 If save_nls = True, the neighbourlist will be saved to this directory.
-            prior_tag: 
+            prior_tag:
                 String identifying the specific combination of prior terms.
-        
+
         Returns
         -------
         Dictionary of prior terms with specific index mapping for the given molecule.
@@ -303,26 +290,26 @@ class TrainingSample(object):
                 except NameError:
                     print(f"The prior term {prior} has not been defined and will be omitted.")
                     omit_prior.append(prior)
-        
+
         for prior in omit_prior:
             del prior_dict[prior]
 
         if any("separate_termini" in prior_dict[prior] for prior in prior_dict.keys()):
             prior_dict = get_terminal_atoms(
-                prior_dict, 
-                cg_dataframe=self.cg_dataframe, 
-                N_term=self.N_term, 
+                prior_dict,
+                cg_dataframe=self.cg_dataframe,
+                N_term=self.N_term,
                 C_term=self.C_term
                 )
-        
+
         # get atom groups for edges and orders for all prior terms
         cg_top = self.aa_traj.atom_slice(self.cg_atom_indices).topology
-        
+
         all_edges_and_orders = get_edges_and_orders(
-            prior_dict, 
-            topology=cg_top, 
+            prior_dict,
+            topology=cg_top,
             )
-        
+
         tags = [x[0] for x in all_edges_and_orders]
         orders = [x[1] for x in all_edges_and_orders]
         edges = [
@@ -340,149 +327,30 @@ class TrainingSample(object):
             with open(
                 ofile,"wb") as pfile:
                 pickle.dump(prior_nls, pfile)
-        
+
         return prior_nls
-    
-
-class CATH_Sample(TrainingSample):
-    def __init__(
-            self, 
-            name: str, 
-            tag: str,
-            pdb_fn: str
-    ) -> None:
-        super().__init__(name, tag, pdb_fn)
-    
-    def load_coords_forces(
-            self,
-            base_dir: str="/import/a12/users/nickc/updated_cath/",
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        #return sorted(name, key=alphanum_key)
-        outputs_fns = natsorted(glob(
-            os.path.join(base_dir, f"output/{self.name}/*_part_*")
-            ))
-        aa_coord_list = []
-        aa_force_list = []
-        # load the files, checking against the mol dictionary
-        for fn in outputs_fns:
-            output = np.load(fn)
-            coord = output["coords"]
-            coord = 10.0 * coord  # convert nm to angstroms
-            force = output["Fs"]
-            force = force / 41.84  # convert to from kJ/mol/nm to kcal/mol/ang
-            assert coord.shape == force.shape
-            aa_coord_list.append(coord)
-            aa_force_list.append(force)
-        aa_coords = np.concatenate(aa_coord_list)
-        aa_forces = np.concatenate(aa_force_list)
-        return aa_coords, aa_forces
 
 
-class CATH_ext_Sample(TrainingSample):
-    def __init__(
-            self, 
-            name: str, 
-            tag: str,
-            pdb_fn: str
-    ) -> None:
-        pdb = glob(pdb_fn)[0]
-        super().__init__(name, tag, pdb)
-    
-    def load_coords_forces(
-            self, 
-            base_dir: str = "/net/scratch-sheldon/sayeg84/cath_simuls_v2/"
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        traj_dirs = glob(
-            os.path.join(base_dir, f"group_*/{self.name}_*/")
+class RawDataset:
+    def __init__(self, dataset_name:str, names: List[str], tag: str, pdb_template_fn:str) -> None:
+        self.dataset_name = dataset_name
+        self.names = names
+        self.tag = tag
+        self.pdb_template_fn = pdb_template_fn
+        self.dataset = []
+
+        for name in names:
+            data_samples = SampleCollection(
+                name=name,
+                tag=tag,
+                pdb_fn=pdb_template_fn.format(name),
             )
-        all_coords = []
-        all_forces = []
-        for traj_dir in traj_dirs:
-            traj_coords = []
-            traj_forces = []
-            fns = glob(
-                os.path.join(traj_dir, "prod_out_full_output/*.npz")
-            )
-            fns.sort(key = lambda file : int(file.split("_")[-2]))
-            last_parent_id = None
-            for fn in fns:
-                np_dict = np.load(fn,allow_pickle=True)
-                current_id = np_dict['id']
-                parent_id = np_dict['parent_id']
-                if parent_id  is not None:
-                    assert parent_id == last_parent_id
-                traj_coords.append(np_dict['coords'])
-                traj_forces.append(np_dict['Fs'])
-                last_parent_id = current_id
-            traj_full_coords = np.concatenate(traj_coords)
-            traj_full_forces = np.concatenate(traj_forces)
-            if traj_full_coords.shape[0] != 25000:
-                continue
-            else:
-                all_coords.append(traj_full_coords)
-                all_forces.append(traj_full_forces)
-        full_coords = np.concatenate(all_coords)
-        full_forces = np.concatenate(all_forces)
-        return full_coords, full_forces
+            self.dataset.append(data_samples)
 
+    def __getitem__(self, idx):
+        return self.dataset[idx]
 
-class DIMER_Sample(TrainingSample):
-    def __init__(
-            self, 
-            name: str, 
-            tag: str,
-            pdb_fn: str
-    ) -> None:
-        super().__init__(name, tag, pdb_fn)
-    
-    def load_coords_forces(
-            self,
-            base_dir: str="/import/a12/users/aguljas/two_peptides/data/"
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        with h5py.File(
-            os.path.join(base_dir, "allatom.h5"), 
-            "r"
-            ) as data:    
-            coord = data["MINI"][self.name]["aa_coords"][:]
-            force = data["MINI"][self.name]["aa_forces"][:]
-
-        # convert to kcal/mol/angstrom and angstrom
-        # from kJ/mol/nm and nm
-        coord = coord*10
-        force = force/41.84
-
-        return coord, force
-    
-
-class DIMER_ext_Sample(TrainingSample):
-    def __init__(
-            self, 
-            name: str, 
-            tag: str,
-            pdb_fn: str
-    ) -> None:
-        pdb = glob(pdb_fn)[0]
-        super().__init__(name, tag, pdb)
-
-    def load_coords_forces(
-            self,
-            base_dir: str="/import/a12/users/ac7165fu/"
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        
-        coord = np.load(
-            glob(os.path.join(base_dir, f"dip_dimers_*/data/{self.name}_coord.npy"))[0],
-            allow_pickle=True
-            )
-        force = np.load(
-            glob(os.path.join(base_dir, f"dip_dimers_*/data/{self.name}_force.npy"))[0],
-            allow_pickle=True
-            )
-        
-        # convert to kcal/mol/angstrom and angstrom
-        # from kJ/mol/nm and nm
-        coord = coord*10
-        force = force/41.84
-
-        return coord, force
+    def __len__(self):
+        return len(self.dataset)
 
 

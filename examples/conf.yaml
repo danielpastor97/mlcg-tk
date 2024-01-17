@@ -1,0 +1,52 @@
+dataset_name: 2JOF
+names: [2JOF]
+sample_loader_func: input_generator.Trpcage_loader
+tag: ""
+raw_data_dir: /local_scratch2/musil/make_datasets/data/trpcage
+save_dir: /local_scratch2/musil/make_datasets/datasets/input_generator_trpcage/test
+pdb_template_fn: /local_scratch2/musil/make_datasets/data/trpcage/trpcage_50ns_0/structure.pdb
+cg_atoms:
+- N
+- CA
+- CB
+- C
+- O
+embedding_map:
+  class_path: input_generator.CGEmbeddingMapFiveBead
+embedding_func: input_generator.embedding_fivebead
+skip_residues:
+- ACE
+- NME
+use_terminal_embeddings: false
+cg_mapping_strategy: slice_aggregate
+prior_tag: cgschnet
+prior_dict:
+  bonds:
+    type: bonds
+    prior_function: input_generator.standard_bonds
+    separate_termini: true
+  angles:
+    type: angles
+    prior_function: input_generator.standard_angles
+    separate_termini: true
+  non_bonded:
+    type: non_bonded
+    prior_function: input_generator.non_bonded
+    min_pair: 6
+    res_exclusion: 1
+    separate_termini: false
+  phi:
+    type: dihedrals
+    prior_function: input_generator.phi
+  psi:
+    type: dihedrals
+    prior_function: input_generator.psi
+  omega:
+    type: dihedrals
+    prior_function: input_generator.omega
+  gamma_1:
+    type: dihedrals
+    prior_function: input_generator.gamma_1
+  gamma_2:
+    type: dihedrals
+    prior_function: input_generator.gamma_2

@@ -7,7 +7,7 @@ import torch
 from mlcg.data.atomic_data import AtomicData
 from mlcg.datasets.utils import remove_baseline_forces
 
-from sample import *
+from input_generator.raw_dataset import *
 from prior_terms import *
 
 from tqdm import tqdm
@@ -21,21 +21,21 @@ def parse_cli():
         description="Script for generating input CG data and prior neighbourlists for transferable datasets.",
     )
     parser.add_argument(
-        "--data_dict", 
+        "--data_dict",
         type=str,
         nargs="+",
-        help="Configuration file containing sub-dataset parameters and prior terms.", 
+        help="Configuration file containing sub-dataset parameters and prior terms.",
     )
     parser.add_argument(
-        "--names", 
+        "--names",
         type=str,
         nargs="+",
-        help="Sample names for each sub-dataset in data_dict.", 
+        help="Sample names for each sub-dataset in data_dict.",
     )
     parser.add_argument(
-        "--prior_model", 
+        "--prior_model",
         type=str,
-        help="Pytorch file in which prior model is saved.", 
+        help="Pytorch file in which prior model is saved.",
     )
     parser.add_argument(
         "--device",
@@ -51,10 +51,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     device = args.device
-    
+
     data_dict_list = [yaml.safe_load(open(dict, "rb")) for dict in args.data_dict]
     data_dict = {k: v for d in data_dict_list for k, v in d.items()}
-    
+
     names_list = [yaml.safe_load(open(dict, "rb")) for dict in args.names]
     names = {k: v for d in names_list for k, v in d.items()}
 
@@ -68,25 +68,25 @@ if __name__ == "__main__":
             data_list = []
             coords = np.load(
                 os.path.join(
-                    sub_data_dict["save_dir"], 
+                    sub_data_dict["save_dir"],
                     f"{sub_data_dict['base_tag']}{name}_cg_coords.npy"
                     )
             )
             forces = np.load(
                 os.path.join(
-                    sub_data_dict["save_dir"], 
+                    sub_data_dict["save_dir"],
                     f"{sub_data_dict['base_tag']}{name}_cg_forces.npy"
                     )
             )
             embeds = np.load(
                 os.path.join(
-                    sub_data_dict["save_dir"], 
+                    sub_data_dict["save_dir"],
                     f"{sub_data_dict['base_tag']}{name}_cg_embeds.npy"
                     )
             )
             nls = pickle.load(open(
                 os.path.join(
-                    sub_data_dict["save_dir"], 
+                    sub_data_dict["save_dir"],
                     f"{sub_data_dict['base_tag']}{name}_prior_nls_{sub_data_dict['prior_tag']}.pkl",
                     ),
                     "rb"
@@ -101,7 +101,7 @@ if __name__ == "__main__":
                     neighborlist=nls,
                 )
                 data_list.append(data)
-            
+
             if "batch_size" in sub_data_dict:
                 batch_size = sub_data_dict["batch_size"]
             else:
@@ -131,7 +131,7 @@ if __name__ == "__main__":
 
             np.save(
                 os.path.join(
-                    sub_data_dict["save_dir"], 
+                    sub_data_dict["save_dir"],
                     f"{sub_data_dict['base_tag']}_{name}_cg_forces.npy"
                 ),
                 np.concatenate(delta_forces, axis=0).reshape(*coords.shape),
