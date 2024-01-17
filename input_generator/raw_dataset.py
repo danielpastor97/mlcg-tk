@@ -7,6 +7,7 @@ import numpy as np
 import torch
 import warnings
 import os
+from importlib import import_module
 
 from mlcg.neighbor_list.neighbor_list import make_neighbor_list
 
@@ -285,8 +286,11 @@ class SampleCollection:
         omit_prior = []
         for prior in prior_dict.keys():
             if isinstance(prior_dict[prior]["prior_function"], str):
+                module_str, prior_function = prior_dict[prior]["prior_function"].split('.')
                 try:
-                    prior_dict[prior]["prior_function"] = eval(prior_dict[prior]["prior_function"])
+                    module = import_module(module_str)
+                    prior_function = getattr(module, prior_function)
+                    prior_dict[prior]["prior_function"] = prior_function
                 except NameError:
                     print(f"The prior term {prior} has not been defined and will be omitted.")
                     omit_prior.append(prior)
