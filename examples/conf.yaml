@@ -1,6 +1,6 @@
 dataset_name: 2JOF
 names: [2JOF]
-sample_loader_func: input_generator.Trpcage_loader
+sample_loader: input_generator.Trpcage_loader
 tag: ""
 raw_data_dir: /local_scratch2/musil/make_datasets/data/trpcage
 save_dir: /local_scratch2/musil/make_datasets/datasets/input_generator_trpcage/test
@@ -11,8 +11,7 @@ cg_atoms:
 - CB
 - C
 - O
-embedding_map:
-  class_path: input_generator.CGEmbeddingMapFiveBead
+embedding_map: input_generator.CGEmbeddingMapFiveBead
 embedding_func: input_generator.embedding_fivebead
 skip_residues:
 - ACE

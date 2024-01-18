@@ -21,7 +21,7 @@ from jsonargparse import CLI
 def process_raw_dataset(
     dataset_name:str,
     names: List[str],
-    sample_loader_func: DatasetLoader,
+    sample_loader: DatasetLoader,
     raw_data_dir:str,
     tag:str,
     pdb_template_fn:str,
@@ -43,7 +43,7 @@ def process_raw_dataset(
         _description_
     names : List[str]
         _description_
-    sample_loader_func : Callable
+    sample_loader : Callable
         _description_
     raw_data_dir : str
         _description_
@@ -71,12 +71,12 @@ def process_raw_dataset(
     """
     dataset = RawDataset(dataset_name, names, tag)
     for samples in tqdm(dataset, f"Processing CG data for {dataset_name} dataset..."):
-        
-        samples.aa_traj, samples.top_dataframe = sample_loader_func.get_traj_top(
+
+        samples.aa_traj, samples.top_dataframe = sample_loader.get_traj_top(
             samples.name,
             pdb_template_fn
         )
-        
+
         samples.apply_cg_mapping(
             cg_atoms=cg_atoms,
             embedding_function=embedding_func,
@@ -98,7 +98,7 @@ def process_raw_dataset(
             prior_tag=prior_tag
         )
 
-        aa_coords, aa_forces =  sample_loader_func.load_coords_forces(raw_data_dir, samples.name)
+        aa_coords, aa_forces =  sample_loader.load_coords_forces(raw_data_dir, samples.name)
 
         cg_coords, cg_forces = samples.process_coords_forces(aa_coords, aa_forces, mapping=cg_mapping_strategy)
 
