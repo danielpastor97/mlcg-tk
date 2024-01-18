@@ -3,4 +3,4 @@ from .raw_data_loader import CATH_loader, CATH_ext_loader, DIMER_loader, DIMER_e
 
 from .embedding_maps import CGEmbeddingMap, CGEmbeddingMapFiveBead, embedding_fivebead
 
-from .prior_terms import standard_bonds, standard_angles, non_bonded, phi, psi, omega, gamma_1, gamma_2
+from .prior_nls import standard_bonds, standard_angles, non_bonded, phi, psi, omega, gamma_1, gamma_2
