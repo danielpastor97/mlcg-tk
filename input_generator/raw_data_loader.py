@@ -8,14 +8,10 @@ import mdtraj as md
 
 
 class DatasetLoader:
-    def __init__(self):
-        pass
+    pass
 
 
 class CATH_loader(DatasetLoader):
-    def __init__(self):
-        super().__init__()
-    
     def get_traj_top(
             self,
             name: str,
@@ -52,9 +48,6 @@ class CATH_loader(DatasetLoader):
         return aa_coords, aa_forces
 
 class CATH_ext_loader(DatasetLoader):
-    def __init__(self):
-        super().__init__()
-    
     def get_traj_top(
             self,
             name: str,
@@ -105,9 +98,6 @@ class CATH_ext_loader(DatasetLoader):
         return full_coords, full_forces
 
 class DIMER_loader(DatasetLoader):
-    def __init__(self):
-        super().__init__()
-    
     def get_traj_top(
             self,
             name: str,
@@ -138,9 +128,6 @@ class DIMER_loader(DatasetLoader):
         return coord, force
 
 class DIMER_ext_loader(DatasetLoader):
-    def __init__(self):
-        super().__init__()
-    
     def get_traj_top(
             self,
             name: str,
@@ -173,9 +160,6 @@ class DIMER_ext_loader(DatasetLoader):
         return coord, force
 
 class Trpcage_loader(DatasetLoader):
-    def __init__(self):
-        super().__init__()
-    
     def get_traj_top(
             self,
             name: str,
