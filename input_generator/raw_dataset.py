@@ -334,6 +334,17 @@ class SampleCollection:
 
         return prior_nls
 
+    def load_cg_output(self, save_dir:str, prior_tag:str=""):
+        save_templ = os.path.join(save_dir, f"{self.tag}{self.name}")
+        cg_coords = np.load(f"{save_templ}_cg_coords.npy")
+        cg_forces = np.load(f"{save_templ}_cg_forces.npy")
+        cg_embeds = np.load(f"{save_templ}_cg_embeds.npy")
+        cg_pdb = md.load(f"{save_templ}_cg_structure.pdb")
+        # load NLs
+        ofile = os.path.join(save_dir, f"{self.tag}{self.name}_prior_nls_{prior_tag}.pkl")
+        with open(ofile,"rb") as f:
+                cg_prior_nls = pickle.load(f)
+        return cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls
 
 class RawDataset:
     def __init__(self, dataset_name:str, names: List[str], tag: str, pdb_template_fn:str) -> None:
