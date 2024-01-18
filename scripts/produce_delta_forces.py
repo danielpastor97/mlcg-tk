@@ -1,6 +1,10 @@
+import os.path as osp
+import sys
+
+SCRIPT_DIR = osp.abspath(osp.dirname(__file__))
+sys.path.insert(0, osp.join(SCRIPT_DIR, "../"))
+
 import mdtraj as md
-from glob import glob
-import pandas as pd
 import numpy as np
 import torch
 
@@ -8,131 +12,86 @@ from mlcg.data.atomic_data import AtomicData
 from mlcg.datasets.utils import remove_baseline_forces
 
 from input_generator.raw_dataset import *
-from prior_terms import *
 
 from tqdm import tqdm
-import yaml
-import argparse
-import os
+
+from time import ctime
+
+from typing import Dict,List,Union, Callable
+from jsonargparse import CLI
 
 
-def parse_cli():
-    parser = argparse.ArgumentParser(
-        description="Script for generating input CG data and prior neighbourlists for transferable datasets.",
-    )
-    parser.add_argument(
-        "--data_dict",
-        type=str,
-        nargs="+",
-        help="Configuration file containing sub-dataset parameters and prior terms.",
-    )
-    parser.add_argument(
-        "--names",
-        type=str,
-        nargs="+",
-        help="Sample names for each sub-dataset in data_dict.",
-    )
-    parser.add_argument(
-        "--prior_model",
-        type=str,
-        help="Pytorch file in which prior model is saved.",
-    )
-    parser.add_argument(
-        "--device",
-        default="cpu",
-        required=False,
-        type=str,
-        help="Optional arguement to set device on which delta forces will be calculated."
-    )
-    return parser
+def produce_delta_forces(
+    dataset_name:str,
+    names: List[str],
+    tag:str,
+    save_dir:str,
+    prior_tag:str,
+    prior_fn:str,
+    device:str,
+    batch_size:int
+):
+    """_summary_
+
+    Parameters
+    ----------
+    dataset_name : str
+        _description_
+    names : List[str]
+        _description_
+    tag : str
+        _description_
+    save_dir : str
+        _description_
+    prior_tag : str
+        _description_
+    prior_fn : str
+        _description_
+    batch_size : int
+        _description_
+    """
+    
+    prior_model = torch.load(open(prior_fn, "rb")).models.to(device)
+    dataset = RawDataset(dataset_name, names, tag)
+    for samples in tqdm(dataset, f"Processing delta forces for {dataset_name} dataset..."):
+        coords, forces, embeds, pdb, prior_nls = samples.load_cg_output(
+            save_dir=save_dir,
+            prior_tag=prior_tag
+        )
+
+        num_frames = coords.shape[0]
+        delta_forces = []
+        for i in range(0, num_frames, batch_size):
+            sub_data_list = []
+            for j in range(batch_size):
+                data = AtomicData.from_points(
+                        pos=torch.tensor(coords[i+j]),
+                        forces=torch.tensor(forces[i+j]),
+                        atom_types=torch.tensor(embeds),
+                        masses=None,
+                        neighborlist=prior_nls,
+                )
+                sub_data_list.append(data.to(device))
+            sub_data_list = tuple(sub_data_list)
+            _ = remove_baseline_forces(
+                sub_data_list,
+                prior_model,
+            )
+            for j in range(batch_size):
+                delta_force = sub_data_list[j].forces.detach().cpu()
+                delta_forces.append(delta_force.numpy())
+
+        np.save(
+            os.path.join(
+                save_dir,
+                f"{tag}{samples.name}_{prior_tag}_delta_forces.npy"
+            ),
+            np.concatenate(delta_forces, axis=0).reshape(*coords.shape),
+        )
 
 if __name__ == "__main__":
-    parser = parse_cli()
-    args = parser.parse_args()
+    print("Start produce_delta_forces.py: {}".format(ctime()))
 
-    device = args.device
+    CLI([produce_delta_forces])
 
-    data_dict_list = [yaml.safe_load(open(dict, "rb")) for dict in args.data_dict]
-    data_dict = {k: v for d in data_dict_list for k, v in d.items()}
-
-    names_list = [yaml.safe_load(open(dict, "rb")) for dict in args.names]
-    names = {k: v for d in names_list for k, v in d.items()}
-
-    prior_model = torch.load(open(args.prior_model, "rb")).models.to(device)
-
-    for dataset in data_dict.keys():
-        sub_data_dict = data_dict[dataset]
-        dataset_names = names[dataset]
-
-        for name in tqdm(dataset_names, f"Producing delta forces for {dataset} dataset..."):
-            data_list = []
-            coords = np.load(
-                os.path.join(
-                    sub_data_dict["save_dir"],
-                    f"{sub_data_dict['base_tag']}{name}_cg_coords.npy"
-                    )
-            )
-            forces = np.load(
-                os.path.join(
-                    sub_data_dict["save_dir"],
-                    f"{sub_data_dict['base_tag']}{name}_cg_forces.npy"
-                    )
-            )
-            embeds = np.load(
-                os.path.join(
-                    sub_data_dict["save_dir"],
-                    f"{sub_data_dict['base_tag']}{name}_cg_embeds.npy"
-                    )
-            )
-            nls = pickle.load(open(
-                os.path.join(
-                    sub_data_dict["save_dir"],
-                    f"{sub_data_dict['base_tag']}{name}_prior_nls_{sub_data_dict['prior_tag']}.pkl",
-                    ),
-                    "rb"
-                ))
-            num_frames = coords.shape[0]
-            for i in range(num_frames):
-                data = AtomicData.from_points(
-                    pos=torch.tensor(coords[i]),
-                    forces=torch.tensor(forces[i]),
-                    atom_types=torch.tensor(embeds),
-                    masses=None,
-                    neighborlist=nls,
-                )
-                data_list.append(data)
-
-            if "batch_size" in sub_data_dict:
-                batch_size = sub_data_dict["batch_size"]
-            else:
-                batch_size = 100
-
-            num_frames = coords.shape[0]
-            delta_forces = []
-            for i in range(0, num_frames, batch_size):
-                sub_data_list = []
-                for j in range(batch_size):
-                    data = AtomicData.from_points(
-                            pos=torch.tensor(coords[i+j]),
-                            forces=torch.tensor(forces[i+j]),
-                            atom_types=torch.tensor(embeds),
-                            masses=None,
-                            neighborlist=nls,
-                    )
-                    sub_data_list.append(data.to(device))
-                sub_data_list = tuple(sub_data_list)
-                _ = remove_baseline_forces(
-                    sub_data_list,
-                    prior_model,
-                )
-                for j in range(batch_size):
-                    delta_force = sub_data_list[j].forces.detach().cpu()
-                    delta_forces.append(delta_force.numpy())
-
-            np.save(
-                os.path.join(
-                    sub_data_dict["save_dir"],
-                    f"{sub_data_dict['base_tag']}_{name}_cg_forces.npy"
-                ),
-                np.concatenate(delta_forces, axis=0).reshape(*coords.shape),
-            )
+    print("Finish produce_delta_forces.py: {}".format(ctime()))

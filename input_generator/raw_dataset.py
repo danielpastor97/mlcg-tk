@@ -31,13 +31,9 @@ class SampleCollection:
             self,
             name: str,
             tag: str,
-            pdb_fn: str
     ) -> None:
         self.name = name
         self.tag = tag
-        pdb = md.load(pdb_fn.format(name))
-        self.aa_traj = pdb.atom_slice([a.index for a in pdb.topology.atoms if a.residue.is_protein])
-        self.top_dataframe = self.aa_traj.topology.to_dataframe()[0]
 
     def apply_cg_mapping(
             self,
@@ -347,18 +343,16 @@ class SampleCollection:
         return cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls
 
 class RawDataset:
-    def __init__(self, dataset_name:str, names: List[str], tag: str, pdb_template_fn:str) -> None:
+    def __init__(self, dataset_name:str, names: List[str], tag: str) -> None:
         self.dataset_name = dataset_name
         self.names = names
         self.tag = tag
-        self.pdb_template_fn = pdb_template_fn
         self.dataset = []
 
         for name in names:
             data_samples = SampleCollection(
                 name=name,
                 tag=tag,
-                pdb_fn=pdb_template_fn.format(name),
             )
             self.dataset.append(data_samples)
 
