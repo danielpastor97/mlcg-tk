@@ -1,8 +1,3 @@
-import torch
-from mlcg.data.atomic_data import AtomicData
-from mlcg.nn.prior import *
-from mlcg.nn.gradients import *
-from mlcg.datasets.utils import remove_baseline_forces, chunker
 import pandas as pd
 from typing import List, Optional, Union, Tuple, Dict
 import numpy as np
@@ -12,6 +7,7 @@ from aggforce import linearmap as lm
 from aggforce import agg as ag
 from aggforce import constfinder as cf
 
+from .prior_gen import PriorBuilder
 
 def map_cg_topology(
         atom_df: pd.DataFrame,
@@ -137,7 +133,7 @@ def slice_coord_forces(
 
 
 def get_terminal_atoms(
-        prior_dict: Dict,
+        prior_builder: PriorBuilder,
         cg_dataframe: pd.DataFrame,
         N_term: Union[None,str]=None,
         C_term: Union[None,str]=None,
@@ -145,8 +141,8 @@ def get_terminal_atoms(
     """
     Parameters
     ----------
-    prior_dict:
-        Dictionary of prior terms and their corresponding parameters.
+    prior_builder:
+
     cg_dataframe:
         Dataframe of CG topology (from MDTraj topology object).
     N_term: (Optional)
@@ -162,44 +158,43 @@ def get_terminal_atoms(
         if len(residues) == 1:
             monopeptide_atoms.extend(cg_dataframe.loc[cg_dataframe.chainID == chain].index.to_list())
 
-    for prior in prior_dict:
-        if "separate_termini" in prior_dict[prior] and prior_dict[prior]["separate_termini"] == True:
-            first_res, last_res = cg_dataframe["resSeq"].min(), cg_dataframe["resSeq"].max()
-            n_term_atoms = cg_dataframe.loc[(cg_dataframe["resSeq"] == first_res)].index.to_list()
-            c_term_atoms = cg_dataframe.loc[(cg_dataframe["resSeq"] == last_res)].index.to_list()
 
-            prior_dict[prior]["n_term_atoms"] = [a for a in n_term_atoms if a not in monopeptide_atoms]
-            prior_dict[prior]["c_term_atoms"] = [a for a in c_term_atoms if a not in monopeptide_atoms]
+    first_res, last_res = cg_dataframe["resSeq"].min(), cg_dataframe["resSeq"].max()
+    n_term_atoms = cg_dataframe.loc[(cg_dataframe["resSeq"] == first_res)].index.to_list()
+    c_term_atoms = cg_dataframe.loc[(cg_dataframe["resSeq"] == last_res)].index.to_list()
 
-            if N_term != None:
-                prior_dict[prior]["n_atoms"] = cg_dataframe.loc[
-                    (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == N_term)
-                    ].index.to_list()
-            else:
-                prior_dict[prior]["n_atoms"] = cg_dataframe.loc[
-                    (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == "N")
-                    ].index.to_list()
-            if N_term != None:
-                prior_dict[prior]["c_atoms"] = cg_dataframe.loc[
-                    (cg_dataframe["resSeq"] == last_res) & (cg_dataframe["name"] == C_term)
-                    ].index.to_list()
-            else:
-                prior_dict[prior]["c_atoms"] = cg_dataframe.loc[
-                    (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == "C")
-                    ].index.to_list()
+    prior_builder.n_term_atoms = [a for a in n_term_atoms if a not in monopeptide_atoms]
+    prior_builder.c_term_atoms = [a for a in c_term_atoms if a not in monopeptide_atoms]
 
-    return prior_dict
+    if N_term != None:
+        prior_builder.n_atoms = cg_dataframe.loc[
+            (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == N_term)
+            ].index.to_list()
+    else:
+        prior_builder.n_atoms = cg_dataframe.loc[
+            (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == "N")
+            ].index.to_list()
+    if N_term != None:
+        prior_builder.c_atoms = cg_dataframe.loc[
+            (cg_dataframe["resSeq"] == last_res) & (cg_dataframe["name"] == C_term)
+            ].index.to_list()
+    else:
+        prior_builder.c_atoms = cg_dataframe.loc[
+            (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == "C")
+            ].index.to_list()
+
+    return prior_builder
 
 
 def get_edges_and_orders(
-        prior_dict: Dict,
+        prior_builders: List[PriorBuilder],
         topology: md.Topology,
 ) -> List:
     """
     Parameters
     ----------
-    prior_dict:
-        Dictionary of prior terms and their corresponding parameters.
+    prior_builders:
+        .
     topology:
         MDTraj topology object from which atom groups defining each prior term will be created.
     cg_dataframe:
@@ -211,30 +206,28 @@ def get_edges_and_orders(
     """
     all_edges_and_orders = []
     # process bond priors
-    bond_dicts = [prior for prior in prior_dict if prior_dict[prior]["type"] == "bonds"]
+    bond_builders = [prior_builder for prior_builder in prior_builders if prior_builder.type == "bonds"]
     all_bond_edges = []
-    if len(bond_dicts) != 0:
-        for bdict in bond_dicts:
-            edges_and_orders = prior_dict[bdict]["prior_function"](topology, **prior_dict[bdict])
-            if isinstance(edges_and_orders, list):
-                all_edges_and_orders.extend(edges_and_orders)
-                all_bond_edges.extend([p[2] for p in edges_and_orders])
-            else:
-                all_edges_and_orders.append(edges_and_orders)
-                all_bond_edges.append(edges_and_orders[2])
+    for prior_builder in bond_builders:
+        edges_and_orders = prior_builder.build_nl(topology)
+        if isinstance(edges_and_orders, list):
+            all_edges_and_orders.extend(edges_and_orders)
+            all_bond_edges.extend([p[2] for p in edges_and_orders])
+        else:
+            all_edges_and_orders.append(edges_and_orders)
+            all_bond_edges.append(edges_and_orders[2])
 
     # process angle priors
-    angle_dicts = [prior for prior in prior_dict if prior_dict[prior]["type"] == "angles"]
+    angle_builders = [prior_builder for prior_builder in prior_builders if prior_builder.type == "angles"]
     all_angle_edges = []
-    if len(angle_dicts) != 0:
-        for adict in angle_dicts:
-            edges_and_orders = prior_dict[adict]["prior_function"](topology, **prior_dict[adict])
-            if isinstance(edges_and_orders, list):
-                all_edges_and_orders.extend(edges_and_orders)
-                all_angle_edges.extend([p[2] for p in edges_and_orders])
-            else:
-                all_edges_and_orders.append(edges_and_orders)
-                all_angle_edges.append(edges_and_orders[2])
+    for prior_builder in angle_builders:
+        edges_and_orders = prior_builder.build_nl(topology)
+        if isinstance(edges_and_orders, list):
+            all_edges_and_orders.extend(edges_and_orders)
+            all_angle_edges.extend([p[2] for p in edges_and_orders])
+        else:
+            all_edges_and_orders.append(edges_and_orders)
+            all_angle_edges.append(edges_and_orders[2])
 
     # get nonbonded priors using bonded and angle edges
     if len(all_bond_edges) != 0:
@@ -242,18 +235,21 @@ def get_edges_and_orders(
     if len(all_angle_edges) != 0:
         all_angle_edges = np.concatenate(all_angle_edges, axis=1)
 
-    nonbonded_dicts = [prior for prior in prior_dict if prior_dict[prior]["type"] == "non_bonded"]
-    for nbdict in nonbonded_dicts:
-        edges_and_orders = prior_dict[nbdict]["prior_function"](topology, all_bond_edges, all_angle_edges, **prior_dict[nbdict])
+    nonbonded_builders = [prior_builder for prior_builder in prior_builders if prior_builder.type == "non_bonded"]
+    for prior_builder in nonbonded_builders:
+        edges_and_orders = prior_builder.build_nl(
+            topology, bond_edges=all_bond_edges,
+            angle_edges=all_angle_edges
+        )
+        # edges_and_orders = prior_dict[nbdict]["prior_function"](topology, all_bond_edges, all_angle_edges, **prior_dict[nbdict])
         if isinstance(edges_and_orders, list):
             all_edges_and_orders.extend(edges_and_orders)
         else:
             all_edges_and_orders.append(edges_and_orders)
-
     # process dihedral priors
-    dihedral_dicts = [prior for prior in prior_dict if prior_dict[prior]["type"] == "dihedrals"]
-    for dihdict in dihedral_dicts:
-        edges_and_orders = prior_dict[dihdict]["prior_function"](topology, **prior_dict[dihdict])
+    dihedral_builders = [prior_builder for prior_builder in prior_builders if prior_builder.type == "dihedrals"]
+    for prior_builder in dihedral_builders:
+        edges_and_orders = prior_builder.build_nl(topology)
         if isinstance(edges_and_orders, list):
             all_edges_and_orders.extend(edges_and_orders)
         else:

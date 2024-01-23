@@ -8,7 +8,7 @@ sys.path.insert(0, osp.join(SCRIPT_DIR, "../"))
 from input_generator.raw_dataset import SampleCollection, RawDataset
 from input_generator.embedding_maps import embedding_fivebead, CGEmbeddingMapFiveBead, CGEmbeddingMap
 from input_generator.raw_data_loader import DatasetLoader
-
+from input_generator.prior_gen import Bonds,PriorBuilder
 from tqdm import tqdm
 
 from time import ctime
@@ -33,7 +33,7 @@ def process_raw_dataset(
     use_terminal_embeddings: bool,
     cg_mapping_strategy:str,
     prior_tag:str,
-    prior_dict:dict,
+    prior_builders: List[PriorBuilder],
 ):
     """_summary_
 
@@ -67,7 +67,7 @@ def process_raw_dataset(
         _description_
     prior_tag : str
         _description_
-    prior_dict : dict
+    prior_builders : List[PriorBuilder]
     """
     dataset = RawDataset(dataset_name, names, tag)
     for samples in tqdm(dataset, f"Processing CG data for {dataset_name} dataset..."):
@@ -91,8 +91,8 @@ def process_raw_dataset(
                 C_term=sub_data_dict["C_term"]
             )
 
-        prior_nls = samples.get_prior_terms(
-            prior_dict,
+        prior_nls = samples.get_prior_nls(
+            prior_builders,
             save_nls=True,
             save_dir=save_dir,
             prior_tag=prior_tag

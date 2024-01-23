@@ -12,6 +12,7 @@ from importlib import import_module
 from mlcg.neighbor_list.neighbor_list import make_neighbor_list
 
 from .utils import map_cg_topology, slice_coord_forces, get_terminal_atoms, get_edges_and_orders
+from .prior_gen import PriorBuilder
 
 
 class SampleCollection:
@@ -219,9 +220,9 @@ class SampleCollection:
             else:
                 np.save(f"{save_templ}_cg_forces.npy", cg_forces)
 
-    def get_prior_terms(
+    def get_prior_nls(
             self,
-            prior_dict: Dict,
+            prior_builders: List[PriorBuilder],
             save_nls: bool=True,
             **kwargs
     ) -> Dict:
@@ -280,33 +281,22 @@ class SampleCollection:
         """
         # if function has not been written for prior term, will be skipped
         omit_prior = []
-        for prior in prior_dict.keys():
-            if isinstance(prior_dict[prior]["prior_function"], str):
-                module_str, prior_function = prior_dict[prior]["prior_function"].split('.')
-                try:
-                    module = import_module(module_str)
-                    prior_function = getattr(module, prior_function)
-                    prior_dict[prior]["prior_function"] = prior_function
-                except NameError:
-                    print(f"The prior term {prior} has not been defined and will be omitted.")
-                    omit_prior.append(prior)
+        prior_builders
 
-        for prior in omit_prior:
-            del prior_dict[prior]
-
-        if any("separate_termini" in prior_dict[prior] for prior in prior_dict.keys()):
-            prior_dict = get_terminal_atoms(
-                prior_dict,
-                cg_dataframe=self.cg_dataframe,
-                N_term=self.N_term,
-                C_term=self.C_term
-                )
+        for prior_builder in prior_builders:
+            if getattr(prior_builder, "separate_termini", False):
+                prior_builder = get_terminal_atoms(
+                    prior_builder,
+                    cg_dataframe=self.cg_dataframe,
+                    N_term=self.N_term,
+                    C_term=self.C_term
+                    )
 
         # get atom groups for edges and orders for all prior terms
         cg_top = self.aa_traj.atom_slice(self.cg_atom_indices).topology
 
         all_edges_and_orders = get_edges_and_orders(
-            prior_dict,
+            prior_builders,
             topology=cg_top,
             )
 
