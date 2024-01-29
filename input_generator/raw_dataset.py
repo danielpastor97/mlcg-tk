@@ -9,10 +9,71 @@ import warnings
 import os
 from importlib import import_module
 
+from torch_geometric.data.collate import collate
+
 from mlcg.neighbor_list.neighbor_list import make_neighbor_list
+from mlcg.data.atomic_data import AtomicData
 
 from .utils import map_cg_topology, slice_coord_forces, get_terminal_atoms, get_edges_and_orders
 from .prior_gen import PriorBuilder
+
+def get_strides(n_structure:int, batch_size:int):
+    n_elem, remain = np.divmod(n_structure, batch_size)
+    assert remain > -1, f"remain: {remain}"
+    if remain == 0:
+        batches = np.zeros(n_elem+1)
+        batches[1:] = batch_size
+    else:
+        batches = np.zeros(n_elem+2)
+        batches[1:-1] = batch_size
+        batches[-1] = remain
+    strides = np.cumsum(batches, dtype=int)
+    strides = np.vstack([strides[:-1], strides[1:]]).T
+    return strides
+
+
+class CGDataBatch:
+    def __init__(self, cg_coords, cg_forces, cg_embeds, cg_prior_nls,batch_size:int, stride:int, concat_forces:bool=False) -> None:
+        self.batch_size = batch_size
+        self.stride = stride
+        self.concat_forces = concat_forces
+        self.cg_coords = torch.from_numpy(cg_coords[::stride])
+        self.cg_forces = torch.from_numpy(cg_forces[::stride])
+        self.cg_embeds = torch.from_numpy(cg_embeds)
+        self.cg_prior_nls = cg_prior_nls
+
+        self.n_structure = self.cg_coords.shape[0]
+        if batch_size > self.n_structure:
+            self.batch_size = self.n_structure
+
+        self.strides = get_strides(self.n_structure, self.batch_size)
+        self.n_elem = self.strides.shape[0]
+
+    def __len__(self):
+        return self.n_elem
+    def __getitem__(self, idx):
+        st,nd = self.strides[idx]
+        data_list = []
+        # TODO: build the collated AtomicData by hand to avoid copy/concat ops
+        for ii in range(st,nd):
+            dd = dict(
+                pos=self.cg_coords[ii],
+                atom_types=self.cg_embeds,
+                masses=None,
+                neighborlist=self.cg_prior_nls,
+            )
+            if self.concat_forces:
+                dd['forces'] = self.cg_forces[ii]
+
+            data = AtomicData.from_points(**dd)
+            data_list.append(data)
+        datas, slices, _ = collate(
+            data_list[0].__class__,
+            data_list=data_list,
+            increment=True,
+            add_batch=True,
+        )
+        return datas
 
 
 class SampleCollection:
@@ -294,23 +355,25 @@ class SampleCollection:
 
         # get atom groups for edges and orders for all prior terms
         cg_top = self.aa_traj.atom_slice(self.cg_atom_indices).topology
+        prior_nls = {}
+        for prior_builder in prior_builders:
+            # TODO change rational to 
+            all_edges_and_orders = get_edges_and_orders(
+                [prior_builder],
+                topology=cg_top,
+                )
 
-        all_edges_and_orders = get_edges_and_orders(
-            prior_builders,
-            topology=cg_top,
-            )
+            tags = [x[0] for x in all_edges_and_orders]
+            orders = [x[1] for x in all_edges_and_orders]
+            edges = [
+                torch.tensor(x[2]).type(torch.LongTensor) if isinstance(x[2], np.ndarray)
+                else x[2].type(torch.LongTensor) for x in all_edges_and_orders
+            ]
 
-        tags = [x[0] for x in all_edges_and_orders]
-        orders = [x[1] for x in all_edges_and_orders]
-        edges = [
-            torch.tensor(x[2]).type(torch.LongTensor) if isinstance(x[2], np.ndarray)
-            else x[2].type(torch.LongTensor) for x in all_edges_and_orders
-        ]
-
-        prior_nls = {
-            tag: make_neighbor_list(tag, order, edge)
-            for tag, order, edge in zip(tags, orders, edges)
-        }
+            for tag, order, edge in zip(tags, orders, edges):
+                nl = make_neighbor_list(tag, order, edge)
+                prior_nls[tag] = nl
+                prior_builder.set_neighbor_list(tag, nl)
 
         if save_nls:
             ofile = os.path.join(kwargs["save_dir"], f"{self.tag}{self.name}_prior_nls_{kwargs['prior_tag']}.pkl")
@@ -331,6 +394,12 @@ class SampleCollection:
         with open(ofile,"rb") as f:
                 cg_prior_nls = pickle.load(f)
         return cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls
+
+    def load_cg_output_into_batches(self, save_dir:str, prior_tag:str,
+                                          stride:int, batch_size: int,):
+        cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls = self.load_cg_output(save_dir, prior_tag)
+        batch_list = CGDataBatch(cg_coords, cg_forces, cg_embeds, cg_prior_nls, batch_size, stride)
+        return batch_list
 
 class RawDataset:
     def __init__(self, dataset_name:str, names: List[str], tag: str) -> None:
