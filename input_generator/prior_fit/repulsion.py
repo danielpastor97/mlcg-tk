@@ -74,6 +74,8 @@ def fit_repulsion_from_values(
         Dictionary of interaction parameters as retrived through
         `scipy.optimize.curve_fit`
     """
+    # TODO: change implementation to accept bins / histogram to do the same
+    raise NotImplementedError()
     values = values.numpy()
     if cutoff != None:
         values = values[values < cutoff]
