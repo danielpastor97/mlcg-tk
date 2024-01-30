@@ -6,14 +6,16 @@ SCRIPT_DIR = osp.abspath(osp.dirname(__file__))
 sys.path.insert(0, osp.join(SCRIPT_DIR, "../"))
 
 from input_generator.raw_dataset import SampleCollection, RawDataset
+from input_generator.raw_data_loader import DatasetLoader
 from input_generator.embedding_maps import embedding_fivebead, CGEmbeddingMapFiveBead, CGEmbeddingMap
+from input_generator.prior_gen import Bonds,PriorBuilder
 
 from tqdm import tqdm
 import torch
 from time import ctime
 import numpy as np
 
-from typing import Dict,List,Union, Callable
+from typing import Dict,List,Union, Callable, Optional
 from jsonargparse import CLI
 from scipy.integrate import trapezoid
 
@@ -21,6 +23,7 @@ from torch_geometric.data.collate import collate
 
 from mlcg.data.atomic_data import AtomicData
 from mlcg.nn.prior import Harmonic,_Prior
+from mlcg.nn.gradients import GradientsOut, SumOut
 from mlcg.geometry._symmetrize import _symmetrise_map, _flip_map
 from mlcg.utils import tensor2tuple
 
@@ -90,8 +93,8 @@ def compute_hist(
     data: AtomicData,
     target: str,
     nbins: int,
-    bmin: float,
-    bmax: float,
+    bmin: Optional[float] = None,
+    bmax: Optional[float] = None,
     TargetPrior: _Prior = Harmonic,
 ) -> Dict:
     r"""Function for computing atom type-specific statistics for
@@ -100,8 +103,6 @@ def compute_hist(
 
 
     """
-    if target_fit_kwargs == None:
-        target_fit_kwargs = {}
     unique_types = torch.unique(data.atom_types)
     order = data.neighbor_list[target]["index_mapping"].shape[0]
     unique_keys = _get_all_unique_keys(unique_types, order)
@@ -132,11 +133,47 @@ def compute_hist(
             continue
 
         hist = torch.histc(val, bins=nbins, min=bmin, max=bmax)
+        bin_centers = _get_bin_centers(nbins, b_min=bmin, b_max=bmax)
 
         kf = tensor2tuple(_flip_map[order](unique_key))
-        histograms[kf] = hist
+        histograms[kf] = [hist, bin_centers]
 
     return histograms
+
+
+def fit_potentials(
+        histograms: Dict,
+        prior_fit_fn:Callable,
+        target_fit_kwargs: Optional[Dict] = None
+):
+    if target_fit_kwargs == None:
+        target_fit_kwargs = {}
+
+    kB = 0.0019872041
+    beta = 1 / (300 * kB) # this will be tunable just hard coded for testing
+
+    statistics = {}
+    for kf in histograms.keys():
+        hist, bin_centers = histograms[kf][0], histograms[kf][1]
+
+        mask = hist > 0
+        bin_centers_nz = bin_centers[mask]
+        ncounts_nz = hist[mask]
+        dG_nz = -torch.log(ncounts_nz) / beta
+
+        # need to make fit_from_values possible, these functions are new
+        params = prior_fit_fn(bin_centers_nz, dG_nz, **target_fit_kwargs)
+
+        statistics[kf] = params
+
+        statistics[kf]["p"] = hist / trapezoid(
+            hist.cpu().numpy(), x=bin_centers.cpu().numpy()
+        )
+        statistics[kf]["p_bin"] = bin_centers
+        statistics[kf]["V"] = dG_nz
+        statistics[kf]["V_bin"] = bin_centers_nz
+
+    return statistics
 
 def get_strides(n_structure:int, batch_size:int):
     n_elem, remain = np.divmod(n_structure, batch_size)
@@ -193,31 +230,25 @@ class CGDataBatch:
             add_batch=True,
         )
         return datas
-
-def compute_statistics(
-    dataset_name:str,
-    names: List[str],
-    tag:str,
-    pdb_template_fn:str,
-    save_dir:str,
-    prior_tag:str,
-    stride:int,
-    batch_size: int,
-
-):
-    dataset = RawDataset(dataset_name, names, tag, pdb_template_fn)
-    for samples in tqdm(dataset, f"Compute histograms of CG data for {dataset_name} dataset..."):
-        cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls = samples.load_cg_output(save_dir, prior_tag)
-        batch_list = CGDataBatch(cg_coords, cg_forces, cg_embeds, cg_prior_nls, batch_size, stride)
-        for batch in tqdm(batch_list, f"molecule name: {samples.name}", leave=False):
-            
-
+    
+class NLhist(dict):
+    def __setitem__(self, key, value) -> None:
+        if key not in self:
+            return super().__setitem__(key, value)
+    def add_hist(self, target: str, histograms: Dict):
+        for key, value in histograms.items():
+            if key not in self[target]:
+                self[target][key] = value
+            else:
+                hist, bin_centers = value[0], value[1]
+                assert np.array_equal(self[target][key][1], bin_centers)
+                self[target][key][0] += hist
 
 
 def fit_priors(
     dataset_name:str,
     names: List[str],
-    sample_loader_func: Callable,
+    sample_loader: DatasetLoader,
     raw_data_dir:str,
     tag:str,
     pdb_template_fn:str,
@@ -228,39 +259,66 @@ def fit_priors(
     skip_residues:List[str],
     use_terminal_embeddings: bool,
     cg_mapping_strategy:str,
+    prior_builders: List[PriorBuilder],
     prior_tag:str,
-    prior_dict:dict,
+    fit_parameters: Dict,
 ):
+    dataset = RawDataset(dataset_name, names, tag)
+    prior_counts = NLhist()
 
-    dataset = RawDataset(dataset_name, names, tag, pdb_template_fn)
-    for samples in tqdm(dataset, f"Processing CG data for {dataset_name} dataset..."):
-        samples.apply_cg_mapping(
-            cg_atoms=cg_atoms,
-            embedding_function=embedding_func,
-            embedding_dict=embedding_map,
-            skip_residues=skip_residues,
-        )
-
-        if use_terminal_embeddings:
-            #TODO: fix usage add_terminal_embeddings wrt inputs
-            samples.add_terminal_embeddings(
-                N_term=sub_data_dict["N_term"],
-                C_term=sub_data_dict["C_term"]
-            )
-
-        prior_nls = samples.get_prior_terms(
-            prior_dict,
-            save_nls=True,
+    print("Accumulating data...")
+    for samples in tqdm(dataset, f"Compute histograms of CG data for {dataset_name} dataset...", disable=False):
+        cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls = samples.load_cg_output(
             save_dir=save_dir,
             prior_tag=prior_tag
         )
 
-        aa_coords, aa_forces =  sample_loader_func(raw_data_dir, samples.name)
+        batch_list = CGDataBatch(
+            cg_coords,
+            cg_forces,
+            cg_embeds,
+            cg_prior_nls,
+            fit_parameters["batch_size"],
+            fit_parameters["stride"]
+        )
 
-        cg_coords, cg_forces = samples.process_coords_forces(aa_coords, aa_forces, mapping=cg_mapping_strategy)
-
-        samples.save_cg_output(save_dir, save_coord_force=True)
-
+        for batch in tqdm(batch_list, f"molecule name: {samples.name}", leave=False, disable=False):
+            for builder in prior_builders:
+                targets = [name for name in builder.nl_builder.nl_names if name in cg_prior_nls]
+                for target in targets:
+                    prior_counts[target] = {}
+                    histograms = compute_hist(
+                        data=batch,   
+                        target=target,
+                        nbins=builder.n_bins,
+                        bmin=builder.bmin,
+                        bmax=builder.bmax,
+                        TargetPrior=builder.target_prior,
+                    )
+                    prior_counts.add_hist(target, histograms)
+    
+    print("Fitting priors...")
+    statistics = {}
+    prior_models = {}
+    for builder in prior_builders:
+        nl_names = builder.nl_builder.nl_names
+        targets = [name for name in nl_names if name in cg_prior_nls]
+        for target in targets:
+            statistics[target] = fit_potentials(
+                histograms = prior_counts[target],
+                prior_fit_fn = builder.prior_fit_fn,
+            )
+            prior_models[target] = GradientsOut(
+                builder.prior_model(statistics[target], name=target),
+                targets="forces"
+            )
+    
+    modules = torch.nn.ModuleDict(prior_models)
+    full_prior_model = SumOut(modules, targets=["energy", "forces"])
+    torch.save(
+        full_prior_model,
+        "test_prior_model.pt",
+    )
 
 
 

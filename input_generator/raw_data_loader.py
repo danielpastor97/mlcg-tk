@@ -53,7 +53,7 @@ class CATH_ext_loader(DatasetLoader):
             name: str,
             pdb_fn: str
     ):
-        pdb_fns = glob(pdb.fn.format(name))
+        pdb_fns = glob(pdb_fn.format(name))
         pdb = md.load(pdb_fns[0])
         aa_traj = pdb.atom_slice([a.index for a in pdb.topology.atoms if a.residue.is_protein])
         top_dataframe = aa_traj.topology.to_dataframe()[0]
