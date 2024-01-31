@@ -4,10 +4,12 @@ from scipy.integrate import trapezoid
 from scipy.optimize import curve_fit
 import numpy as np
 
+
 def repulsion(x, sigma):
     """Method defining the repulsion interaction"""
     rr = (sigma / x) * (sigma / x)
     return rr * rr * rr
+
 
 def fit_repulsion_from_potential_estimates(
     bin_centers_nz: torch.Tensor,
@@ -46,6 +48,7 @@ def fit_repulsion_from_potential_estimates(
     stat = {"sigma": sigma}
     return stat
 
+
 def fit_repulsion_from_values(
     values: torch.Tensor,
     percentile: Optional[float] = 1,
@@ -82,5 +85,3 @@ def fit_repulsion_from_values(
     sigma = torch.tensor(np.percentile(values, percentile))
     stat = {"sigma": sigma}
     return stat
-
-

@@ -12,25 +12,19 @@ class DatasetLoader:
 
 
 class CATH_loader(DatasetLoader):
-    def get_traj_top(
-            self,
-            name: str,
-            pdb_fn: str
-    ):
+    def get_traj_top(self, name: str, pdb_fn: str):
         pdb = md.load(pdb_fn.format(name))
-        aa_traj = pdb.atom_slice([a.index for a in pdb.topology.atoms if a.residue.is_protein])
+        aa_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.is_protein]
+        )
         top_dataframe = aa_traj.topology.to_dataframe()[0]
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-            self,
-            base_dir: str,
-            name: str
+        self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
-        #return sorted(name, key=alphanum_key)
-        outputs_fns = natsorted(glob(
-            os.path.join(base_dir, f"output/{name}/*_part_*")
-            ))
+        # return sorted(name, key=alphanum_key)
+        outputs_fns = natsorted(glob(os.path.join(base_dir, f"output/{name}/*_part_*")))
         aa_coord_list = []
         aa_force_list = []
         # load the files, checking against the mol dictionary
@@ -47,44 +41,37 @@ class CATH_loader(DatasetLoader):
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces
 
+
 class CATH_ext_loader(DatasetLoader):
-    def get_traj_top(
-            self,
-            name: str,
-            pdb_fn: str
-    ):
+    def get_traj_top(self, name: str, pdb_fn: str):
         pdb_fns = glob(pdb_fn.format(name))
         pdb = md.load(pdb_fns[0])
-        aa_traj = pdb.atom_slice([a.index for a in pdb.topology.atoms if a.residue.is_protein])
+        aa_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.is_protein]
+        )
         top_dataframe = aa_traj.topology.to_dataframe()[0]
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-            self,
-            base_dir: str,
-            name: str
+        self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
-        traj_dirs = glob(
-            os.path.join(base_dir, f"group_*/{name}_*/")
-            )
+        traj_dirs = glob(os.path.join(base_dir, f"group_*/{name}_*/"))
         all_coords = []
         all_forces = []
         for traj_dir in traj_dirs:
             traj_coords = []
             traj_forces = []
-            fns = glob(
-                os.path.join(traj_dir, "prod_out_full_output/*.npz")
-            )
-            fns.sort(key = lambda file : int(file.split("_")[-2]))
+            fns = glob(os.path.join(traj_dir, "prod_out_full_output/*.npz"))
+            fns.sort(key=lambda file: int(file.split("_")[-2]))
             last_parent_id = None
             for fn in fns:
-                np_dict = np.load(fn,allow_pickle=True)
-                current_id = np_dict['id']
-                parent_id = np_dict['parent_id']
-                if parent_id  is not None:
+                np_dict = np.load(fn, allow_pickle=True)
+                current_id = np_dict["id"]
+                parent_id = np_dict["parent_id"]
+                if parent_id is not None:
                     assert parent_id == last_parent_id
-                traj_coords.append(np_dict['coords'])
-                traj_forces.append(np_dict['Fs'])
+                traj_coords.append(np_dict["coords"])
+                traj_forces.append(np_dict["Fs"])
                 last_parent_id = current_id
             traj_full_coords = np.concatenate(traj_coords)
             traj_full_forces = np.concatenate(traj_forces)
@@ -97,96 +84,89 @@ class CATH_ext_loader(DatasetLoader):
         full_forces = np.concatenate(all_forces)
         return full_coords, full_forces
 
+
 class DIMER_loader(DatasetLoader):
-    def get_traj_top(
-            self,
-            name: str,
-            pdb_fn: str
-    ):
+    def get_traj_top(self, name: str, pdb_fn: str):
         pdb = md.load(pdb_fn.format(name))
-        aa_traj = pdb.atom_slice([a.index for a in pdb.topology.atoms if a.residue.is_protein])
+        aa_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.is_protein]
+        )
         top_dataframe = aa_traj.topology.to_dataframe()[0]
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-            self,
-            base_dir: str,
-            name: str
+        self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
-        with h5py.File(
-            os.path.join(base_dir, "allatom.h5"),
-            "r"
-            ) as data:
+        with h5py.File(os.path.join(base_dir, "allatom.h5"), "r") as data:
             coord = data["MINI"][name]["aa_coords"][:]
             force = data["MINI"][name]["aa_forces"][:]
 
         # convert to kcal/mol/angstrom and angstrom
         # from kJ/mol/nm and nm
-        coord = coord*10
-        force = force/41.84
+        coord = coord * 10
+        force = force / 41.84
 
         return coord, force
 
+
 class DIMER_ext_loader(DatasetLoader):
-    def get_traj_top(
-            self,
-            name: str,
-            pdb_fn: str
-    ):
+    def get_traj_top(self, name: str, pdb_fn: str):
         pdb = md.load(pdb_fn.format(name))
-        aa_traj = pdb.atom_slice([a.index for a in pdb.topology.atoms if a.residue.is_protein])
+        aa_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.is_protein]
+        )
         top_dataframe = aa_traj.topology.to_dataframe()[0]
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-            self,
-            base_dir: str,
-            name: str
+        self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
         coord = np.load(
             glob(os.path.join(base_dir, f"dip_dimers_*/data/{name}_coord.npy"))[0],
-            allow_pickle=True
-            )
+            allow_pickle=True,
+        )
         force = np.load(
             glob(os.path.join(base_dir, f"dip_dimers_*/data/{name}_force.npy"))[0],
-            allow_pickle=True
-            )
+            allow_pickle=True,
+        )
 
         # convert to kcal/mol/angstrom and angstrom
         # from kJ/mol/nm and nm
-        coord = coord*10
-        force = force/41.84
+        coord = coord * 10
+        force = force / 41.84
 
         return coord, force
 
+
 class Trpcage_loader(DatasetLoader):
-    def get_traj_top(
-            self,
-            name: str,
-            pdb_fn: str
-    ):
+    def get_traj_top(self, name: str, pdb_fn: str):
         pdb = md.load(pdb_fn.format(name))
-        aa_traj = pdb.atom_slice([a.index for a in pdb.topology.atoms if a.residue.is_protein])
+        aa_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.is_protein]
+        )
         top_dataframe = aa_traj.topology.to_dataframe()[0]
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-            self,
-            base_dir: str,
-            name: str
+        self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
-        coords_fns = natsorted(glob(
-            os.path.join(base_dir, f"coords_nowater/trp_coor_folding-trpcage_*.npy")
-            ))
+        coords_fns = natsorted(
+            glob(
+                os.path.join(base_dir, f"coords_nowater/trp_coor_folding-trpcage_*.npy")
+            )
+        )
 
         forces_fns = [
-            fn.replace("coords_nowater/trp_coor_folding","forces_nowater/trp_force_folding") for fn in coords_fns
+            fn.replace(
+                "coords_nowater/trp_coor_folding", "forces_nowater/trp_force_folding"
+            )
+            for fn in coords_fns
         ]
 
         aa_coord_list = []
         aa_force_list = []
         # load the files, checking against the mol dictionary
-        for cfn,ffn in zip(coords_fns, forces_fns):
+        for cfn, ffn in zip(coords_fns, forces_fns):
             force = np.load(ffn)
             coord = np.load(cfn)
             coord = 10.0 * coord  # convert nm to angstroms

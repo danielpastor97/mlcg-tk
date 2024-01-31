@@ -2,6 +2,7 @@ import pandas as pd
 from typing import List, Optional, Union, Tuple, Dict
 import numpy as np
 import mdtraj as md
+from functools import wraps
 
 from aggforce import linearmap as lm
 from aggforce import agg as ag
@@ -9,11 +10,30 @@ from aggforce import constfinder as cf
 
 from .prior_gen import PriorBuilder
 
+
+def with_attrs(**func_attrs):
+    """Set attributes in the decorated function, at definition time.
+    Only accepts keyword arguments.
+    """
+
+    def attr_decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            return fn(*args, **kwargs)
+
+        for attr, value in func_attrs.iteritems():
+            setattr(wrapper, attr, value)
+
+        return wrapper
+
+    return attr_decorator
+
+
 def map_cg_topology(
-        atom_df: pd.DataFrame,
-        cg_atoms: List[str],
-        embedding_function: str,
-        skip_residues: Optional[Union[List,str]] = None,
+    atom_df: pd.DataFrame,
+    cg_atoms: List[str],
+    embedding_function: str,
+    skip_residues: Optional[Union[List, str]] = None,
 ) -> pd.DataFrame:
     """
     Parameters
@@ -72,13 +92,9 @@ def map_cg_topology(
 
 
 def slice_coord_forces(
-        coords,
-        forces,
-        cg_map,
-        mapping: str="slice_aggregate",
-        force_stride: int=100
+    coords, forces, cg_map, mapping: str = "slice_aggregate", force_stride: int = 100
 ) -> Tuple:
-    '''
+    """
     Parameters
     ----------
     coords: [n_frames, n_atoms, 3]
@@ -95,13 +111,11 @@ def slice_coord_forces(
     Returns
     -------
     Coarse-grained coordinates and forces
-    '''
+    """
     config_map = lm.LinearMap(cg_map)
     config_map_matrix = config_map.standard_matrix
     # taking only first 100 frames gives same results in ~1/15th of time
-    constraints = cf.guess_pairwise_constraints(
-        coords[:100], threshold=5e-3
-        )
+    constraints = cf.guess_pairwise_constraints(coords[:100], threshold=5e-3)
     if mapping == "slice_aggregate":
         method = lm.constraint_aware_uni_map
         force_agg_results = ag.project_forces(
@@ -113,17 +127,19 @@ def slice_coord_forces(
         )
     elif mapping == "slice_optimize":
         method = lm.qp_linear_map
-        l2=1e3
+        l2 = 1e3
         force_agg_results = ag.project_forces(
             xyz=None,
             forces=forces[::force_stride],
             config_mapping=config_map,
             constrained_inds=constraints,
             method=method,
-            l2_regularization=l2
+            l2_regularization=l2,
         )
     else:
-        raise RuntimeError(f"Force mapping {mapping} is neither 'slice_aggregate' nor 'slice_optimize'.")
+        raise RuntimeError(
+            f"Force mapping {mapping} is neither 'slice_aggregate' nor 'slice_optimize'."
+        )
 
     force_map_matrix = force_agg_results["map"].standard_matrix
     cg_coords = config_map_matrix @ coords
@@ -133,10 +149,10 @@ def slice_coord_forces(
 
 
 def get_terminal_atoms(
-        prior_builder: PriorBuilder,
-        cg_dataframe: pd.DataFrame,
-        N_term: Union[None,str]=None,
-        C_term: Union[None,str]=None,
+    prior_builder: PriorBuilder,
+    cg_dataframe: pd.DataFrame,
+    N_term: Union[None, str] = None,
+    C_term: Union[None, str] = None,
 ) -> Dict:
     """
     Parameters
@@ -156,12 +172,17 @@ def get_terminal_atoms(
     for chain in chains:
         residues = cg_dataframe.loc[cg_dataframe.chainID == chain].resSeq.unique()
         if len(residues) == 1:
-            monopeptide_atoms.extend(cg_dataframe.loc[cg_dataframe.chainID == chain].index.to_list())
-
+            monopeptide_atoms.extend(
+                cg_dataframe.loc[cg_dataframe.chainID == chain].index.to_list()
+            )
 
     first_res, last_res = cg_dataframe["resSeq"].min(), cg_dataframe["resSeq"].max()
-    n_term_atoms = cg_dataframe.loc[(cg_dataframe["resSeq"] == first_res)].index.to_list()
-    c_term_atoms = cg_dataframe.loc[(cg_dataframe["resSeq"] == last_res)].index.to_list()
+    n_term_atoms = cg_dataframe.loc[
+        (cg_dataframe["resSeq"] == first_res)
+    ].index.to_list()
+    c_term_atoms = cg_dataframe.loc[
+        (cg_dataframe["resSeq"] == last_res)
+    ].index.to_list()
 
     prior_builder.n_term_atoms = [a for a in n_term_atoms if a not in monopeptide_atoms]
     prior_builder.c_term_atoms = [a for a in c_term_atoms if a not in monopeptide_atoms]
@@ -169,26 +190,26 @@ def get_terminal_atoms(
     if N_term != None:
         prior_builder.n_atoms = cg_dataframe.loc[
             (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == N_term)
-            ].index.to_list()
+        ].index.to_list()
     else:
         prior_builder.n_atoms = cg_dataframe.loc[
             (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == "N")
-            ].index.to_list()
+        ].index.to_list()
     if N_term != None:
         prior_builder.c_atoms = cg_dataframe.loc[
             (cg_dataframe["resSeq"] == last_res) & (cg_dataframe["name"] == C_term)
-            ].index.to_list()
+        ].index.to_list()
     else:
         prior_builder.c_atoms = cg_dataframe.loc[
             (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == "C")
-            ].index.to_list()
+        ].index.to_list()
 
     return prior_builder
 
 
 def get_edges_and_orders(
-        prior_builders: List[PriorBuilder],
-        topology: md.Topology,
+    prior_builders: List[PriorBuilder],
+    topology: md.Topology,
 ) -> List:
     """
     Parameters
@@ -206,7 +227,11 @@ def get_edges_and_orders(
     """
     all_edges_and_orders = []
     # process bond priors
-    bond_builders = [prior_builder for prior_builder in prior_builders if prior_builder.type == "bonds"]
+    bond_builders = [
+        prior_builder
+        for prior_builder in prior_builders
+        if prior_builder.type == "bonds"
+    ]
     all_bond_edges = []
     for prior_builder in bond_builders:
         edges_and_orders = prior_builder.build_nl(topology)
@@ -218,7 +243,11 @@ def get_edges_and_orders(
             all_bond_edges.append(edges_and_orders[2])
 
     # process angle priors
-    angle_builders = [prior_builder for prior_builder in prior_builders if prior_builder.type == "angles"]
+    angle_builders = [
+        prior_builder
+        for prior_builder in prior_builders
+        if prior_builder.type == "angles"
+    ]
     all_angle_edges = []
     for prior_builder in angle_builders:
         edges_and_orders = prior_builder.build_nl(topology)
@@ -235,11 +264,14 @@ def get_edges_and_orders(
     if len(all_angle_edges) != 0:
         all_angle_edges = np.concatenate(all_angle_edges, axis=1)
 
-    nonbonded_builders = [prior_builder for prior_builder in prior_builders if prior_builder.type == "non_bonded"]
+    nonbonded_builders = [
+        prior_builder
+        for prior_builder in prior_builders
+        if prior_builder.type == "non_bonded"
+    ]
     for prior_builder in nonbonded_builders:
         edges_and_orders = prior_builder.build_nl(
-            topology, bond_edges=all_bond_edges,
-            angle_edges=all_angle_edges
+            topology, bond_edges=all_bond_edges, angle_edges=all_angle_edges
         )
         # edges_and_orders = prior_dict[nbdict]["prior_function"](topology, all_bond_edges, all_angle_edges, **prior_dict[nbdict])
         if isinstance(edges_and_orders, list):
@@ -247,7 +279,11 @@ def get_edges_and_orders(
         else:
             all_edges_and_orders.append(edges_and_orders)
     # process dihedral priors
-    dihedral_builders = [prior_builder for prior_builder in prior_builders if prior_builder.type == "dihedrals"]
+    dihedral_builders = [
+        prior_builder
+        for prior_builder in prior_builders
+        if prior_builder.type == "dihedrals"
+    ]
     for prior_builder in dihedral_builders:
         edges_and_orders = prior_builder.build_nl(topology)
         if isinstance(edges_and_orders, list):
@@ -258,12 +294,8 @@ def get_edges_and_orders(
     return all_edges_and_orders
 
 
-def split_bulk_termini(
-        N_term,
-        C_term,
-        all_edges
-) -> Tuple:
-    '''
+def split_bulk_termini(N_term, C_term, all_edges) -> Tuple:
+    """
     Parameters
     ----------
     N_term:
@@ -276,23 +308,23 @@ def split_bulk_termini(
     Returns
     -------
     Separated edges for bulk and terminal groups
-    '''
+    """
     n_term_idx = np.where(np.isin(all_edges.T, N_term))
-    n_term_edges = all_edges[:,np.unique(n_term_idx[0])]
+    n_term_edges = all_edges[:, np.unique(n_term_idx[0])]
 
     c_term_idx = np.where(np.isin(all_edges.T, C_term))
-    c_term_edges = all_edges[:,np.unique(c_term_idx[0])]
+    c_term_edges = all_edges[:, np.unique(c_term_idx[0])]
 
     term_edges = np.concatenate([n_term_edges, c_term_edges], axis=1)
-    bulk_edges = np.array([e for e in all_edges.T if not np.all(term_edges == e[:, None], axis=0).any()]).T
+    bulk_edges = np.array(
+        [e for e in all_edges.T if not np.all(term_edges == e[:, None], axis=0).any()]
+    ).T
 
     return n_term_edges, c_term_edges, bulk_edges
 
+
 def get_dihedral_groups(
-        top: md.Topology,
-        atoms_needed: List[str],
-        offset: List[int],
-        tag: Optional[str]
+    top: md.Topology, atoms_needed: List[str], offset: List[int], tag: Optional[str]
 ) -> Dict:
     """
     Parameters
@@ -324,10 +356,10 @@ def get_dihedral_groups(
     """
     res_per_chain = [[res for res in chain.residues] for chain in top.chains]
     atom_groups = {}
-    for chain_idx,chain in enumerate(res_per_chain):
+    for chain_idx, chain in enumerate(res_per_chain):
         for res in chain:
             res_idx = chain.index(res)
-            if any(res_idx+ofs < 0 or res_idx+ofs >= len(chain) for ofs in offset):
+            if any(res_idx + ofs < 0 or res_idx + ofs >= len(chain) for ofs in offset):
                 continue
             if any(atom not in [a.name for a in res.atoms] for atom in atoms_needed):
                 continue
@@ -335,8 +367,10 @@ def get_dihedral_groups(
             if label not in atom_groups:
                 atom_groups[label] = []
             dihedral = []
-            for i,atom in enumerate(atoms_needed):
-                atom_idx = top.select(f"(chainid {chain_idx}) and (resid {res.index+offset[i]}) and (name {atom})")
+            for i, atom in enumerate(atoms_needed):
+                atom_idx = top.select(
+                    f"(chainid {chain_idx}) and (resid {res.index+offset[i]}) and (name {atom})"
+                )
                 dihedral.append(atom_idx)
             atom_groups[label].append(np.concatenate(dihedral))
 

@@ -28,36 +28,40 @@ embedding_map_fivebead = {
     "O": 24,
 }
 
+
 class CGEmbeddingMap(dict):
-    def __init__(self, embedding_map_dict:Dict[str, int]):
-        for k,v in embedding_map_dict.items():
+    def __init__(self, embedding_map_dict: Dict[str, int]):
+        for k, v in embedding_map_dict.items():
             self[k] = v
+
 
 class CGEmbeddingMapFiveBead(CGEmbeddingMap):
     def __init__(self):
         super().__init__(embedding_map_fivebead)
 
 
-all_residues = ['ALA',
-                'CYS',
-                'ASP',
-                'GLU',
-                'PHE',
-                'GLY',
-                'HIS',
-                'ILE',
-                'LYS',
-                'LEU',
-                'MET',
-                'ASN',
-                'PRO',
-                'GLN',
-                'ARG',
-                'SER',
-                'THR',
-                'VAL',
-                'TRP',
-                'TYR']
+all_residues = [
+    "ALA",
+    "CYS",
+    "ASP",
+    "GLU",
+    "PHE",
+    "GLY",
+    "HIS",
+    "ILE",
+    "LYS",
+    "LEU",
+    "MET",
+    "ASN",
+    "PRO",
+    "GLN",
+    "ARG",
+    "SER",
+    "THR",
+    "VAL",
+    "TRP",
+    "TYR",
+]
 
 
 def embedding_fivebead(atom_df):

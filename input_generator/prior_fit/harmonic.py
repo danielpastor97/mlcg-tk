@@ -4,8 +4,10 @@ from scipy.integrate import trapezoid
 from scipy.optimize import curve_fit
 import numpy as np
 
+
 def harmonic(x, x0, k, V0=0):
     return k * (x - x0) ** 2 + V0
+
 
 def fit_harmonic_from_potential_estimates(
     bin_centers_nz: torch.Tensor, dG_nz: torch.Tensor

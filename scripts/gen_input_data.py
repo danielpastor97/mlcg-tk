@@ -1,4 +1,3 @@
-
 import os.path as osp
 import sys
 
@@ -6,33 +5,37 @@ SCRIPT_DIR = osp.abspath(osp.dirname(__file__))
 sys.path.insert(0, osp.join(SCRIPT_DIR, "../"))
 
 from input_generator.raw_dataset import SampleCollection, RawDataset
-from input_generator.embedding_maps import embedding_fivebead, CGEmbeddingMapFiveBead, CGEmbeddingMap
+from input_generator.embedding_maps import (
+    embedding_fivebead,
+    CGEmbeddingMapFiveBead,
+    CGEmbeddingMap,
+)
 from input_generator.raw_data_loader import DatasetLoader
-from input_generator.prior_gen import Bonds,PriorBuilder
+from input_generator.prior_gen import Bonds, PriorBuilder
 from tqdm import tqdm
 
 from time import ctime
 
-from typing import Dict,List,Union, Callable
+from typing import Dict, List, Union, Callable
 from jsonargparse import CLI
 import pickle as pck
 
 
 def process_raw_dataset(
-    dataset_name:str,
+    dataset_name: str,
     names: List[str],
     sample_loader: DatasetLoader,
-    raw_data_dir:str,
-    tag:str,
-    pdb_template_fn:str,
-    save_dir:str,
+    raw_data_dir: str,
+    tag: str,
+    pdb_template_fn: str,
+    save_dir: str,
     cg_atoms: List[str],
     embedding_map: CGEmbeddingMap,
     embedding_func: Callable,
-    skip_residues:List[str],
+    skip_residues: List[str],
     use_terminal_embeddings: bool,
-    cg_mapping_strategy:str,
-    prior_tag:str,
+    cg_mapping_strategy: str,
+    prior_tag: str,
     prior_builders: List[PriorBuilder],
 ):
     """_summary_
@@ -71,10 +74,8 @@ def process_raw_dataset(
     """
     dataset = RawDataset(dataset_name, names, tag)
     for samples in tqdm(dataset, f"Processing CG data for {dataset_name} dataset..."):
-
         samples.aa_traj, samples.top_dataframe = sample_loader.get_traj_top(
-            samples.name,
-            pdb_template_fn
+            samples.name, pdb_template_fn
         )
 
         samples.apply_cg_mapping(
@@ -85,27 +86,27 @@ def process_raw_dataset(
         )
 
         if use_terminal_embeddings:
-            #TODO: fix usage add_terminal_embeddings wrt inputs
+            # TODO: fix usage add_terminal_embeddings wrt inputs
             samples.add_terminal_embeddings(
-                N_term=sub_data_dict["N_term"],
-                C_term=sub_data_dict["C_term"]
+                N_term=sub_data_dict["N_term"], C_term=sub_data_dict["C_term"]
             )
 
         prior_nls = samples.get_prior_nls(
-            prior_builders,
-            save_nls=True,
-            save_dir=save_dir,
-            prior_tag=prior_tag
+            prior_builders, save_nls=True, save_dir=save_dir, prior_tag=prior_tag
         )
 
-        aa_coords, aa_forces =  sample_loader.load_coords_forces(raw_data_dir, samples.name)
+        aa_coords, aa_forces = sample_loader.load_coords_forces(
+            raw_data_dir, samples.name
+        )
 
-        cg_coords, cg_forces = samples.process_coords_forces(aa_coords, aa_forces, mapping=cg_mapping_strategy)
+        cg_coords, cg_forces = samples.process_coords_forces(
+            aa_coords, aa_forces, mapping=cg_mapping_strategy
+        )
 
         samples.save_cg_output(save_dir, save_coord_force=True)
 
         fn = osp.join(save_dir, f"{samples.name}_prior_builders_nl_{prior_tag}.pck")
-        with open(fn, 'wb') as f:
+        with open(fn, "wb") as f:
             pck.dump(prior_builders, f)
 
 

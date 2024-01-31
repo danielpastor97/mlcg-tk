@@ -31,9 +31,7 @@ def dihedral(
         Dihedral interaction energy
     """
     _, n_k = k1s.shape
-    n_degs = torch.arange(
-        1, n_k + 1, dtype=theta.dtype, device=theta.device
-    )
+    n_degs = torch.arange(1, n_k + 1, dtype=theta.dtype, device=theta.device)
     # expand the features w.r.t the mult integer so that it has the
     # shape of k1s and k2s
     angles = theta.view(-1, 1) * n_degs.view(1, -1)
@@ -45,6 +43,7 @@ def dihedral(
 
     return V.sum(dim=1) + v_0
 
+
 def dihedral_wrapper_fit_func(theta: torch.Tensor, *args) -> torch.Tensor:
     args = args[0]
     v_0 = torch.tensor(args[0])
@@ -55,6 +54,7 @@ def dihedral_wrapper_fit_func(theta: torch.Tensor, *args) -> torch.Tensor:
     k2s = torch.tensor(k2s).view(-1, num_ks)
     return dihedral(theta, v_0, k1s, k2s)
 
+
 def neg_log_likelihood(y, yhat):
     """
     Convert dG to probability and use KL divergence to get difference between
@@ -62,6 +62,7 @@ def neg_log_likelihood(y, yhat):
     """
     L = torch.sum(torch.exp(-y) * torch.log(torch.exp(-yhat)))
     return -L
+
 
 def _init_parameters(n_degs):
     """Helper method for guessing initial parameter values"""
@@ -71,6 +72,7 @@ def _init_parameters(n_degs):
     p0.extend(k1s_0)
     p0.extend(k2s_0)
     return p0
+
 
 def _init_parameter_dict(n_degs):
     """Helper method for initializing the parameter dictionary"""
@@ -83,6 +85,7 @@ def _init_parameter_dict(n_degs):
         stat["k1s"][k1_name] = {}
         stat["k2s"][k2_name] = {}
     return stat
+
 
 def _make_parameter_dict(stat, popt, n_degs):
     """Helper method for constructing a fitted parameter dictionary"""
@@ -105,9 +108,8 @@ def _make_parameter_dict(stat, popt, n_degs):
     stat["v_0"] = v_0
     return stat
 
-def _compute_adjusted_R2(
-    bin_centers_nz, dG_nz, mask, popt, free_parameters
-):
+
+def _compute_adjusted_R2(bin_centers_nz, dG_nz, mask, popt, free_parameters):
     """
     Method for model selection using adjusted R2
     Higher values imply better model selection
@@ -116,10 +118,9 @@ def _compute_adjusted_R2(
     SSres = torch.sum(torch.square(dG_nz[mask] - dG_fit))
     SStot = torch.sum(torch.square(dG_nz[mask] - torch.mean(dG_nz[mask])))
     n_samples = len(dG_nz[mask])
-    R2 = 1 - (SSres / (n_samples - free_parameters - 1)) / (
-        SStot / (n_samples - 1)
-    )
+    R2 = 1 - (SSres / (n_samples - free_parameters - 1)) / (SStot / (n_samples - 1))
     return R2
+
 
 def _compute_aic(bin_centers_nz, dG_nz, mask, popt, free_parameters):
     """Method for computing the AIC"""
@@ -133,6 +134,7 @@ def _compute_aic(bin_centers_nz, dG_nz, mask, popt, free_parameters):
     )
     return aic
 
+
 def _linear_regression(bin_centers, targets, n_degs):
     """Vanilla linear regression"""
     features = [torch.ones_like(bin_centers)]
@@ -144,6 +146,7 @@ def _linear_regression(bin_centers, targets, n_degs):
     targets = targets.to(features.dtype)
     sol = torch.linalg.lstsq(features, targets.t())
     return sol
+
 
 def fit_dihedral_from_potential_estimates(
     bin_centers_nz: torch.Tensor,
@@ -197,9 +200,7 @@ def fit_dihedral_from_potential_estimates(
         stat = _init_parameter_dict(constrain_deg)
         if regression_method == "linear":
             popt = (
-                _linear_regression(
-                    bin_centers_nz[mask], dG_nz[mask], constrain_deg
-                )
+                _linear_regression(bin_centers_nz[mask], dG_nz[mask], constrain_deg)
                 .solution.numpy()
                 .tolist()
             )
@@ -227,9 +228,7 @@ def fit_dihedral_from_potential_estimates(
             metric_func = _compute_adjusted_R2
             best_func = max
         else:
-            raise ValueError(
-                "metric {} is neither 'aic' nor 'r2'".format(metric)
-            )
+            raise ValueError("metric {} is neither 'aic' nor 'r2'".format(metric))
 
         # Determine best fit for unknown # of parameters
         stat = _init_parameter_dict(n_degs)
@@ -241,18 +240,14 @@ def fit_dihedral_from_potential_estimates(
                 free_parameters = 1 + (2 * deg)
                 if regression_method == "linear":
                     popt = (
-                        _linear_regression(
-                            bin_centers_nz[mask], dG_nz[mask], deg
-                        )
+                        _linear_regression(bin_centers_nz[mask], dG_nz[mask], deg)
                         .solution.numpy()
                         .tolist()
                     )
                 elif regression_method == "nonlinear":
                     p0 = _init_parameters(deg)
                     popt, _ = curve_fit(
-                        lambda theta, *p0: dihedral_wrapper_fit_func(
-                            theta, p0
-                        ),
+                        lambda theta, *p0: dihedral_wrapper_fit_func(theta, p0),
                         bin_centers_nz[mask],
                         dG_nz[mask],
                         p0=p0,
