@@ -4,11 +4,9 @@ import sys
 SCRIPT_DIR = osp.abspath(osp.dirname(__file__))
 sys.path.insert(0, osp.join(SCRIPT_DIR, "../"))
 
-from input_generator.raw_dataset import SampleCollection, RawDataset
+from input_generator.raw_dataset import RawDataset
 from input_generator.raw_data_loader import DatasetLoader
 from input_generator.embedding_maps import (
-    embedding_fivebead,
-    CGEmbeddingMapFiveBead,
     CGEmbeddingMap,
 )
 from input_generator.prior_gen import Bonds, PriorBuilder
@@ -74,6 +72,7 @@ def compute_statistics(
     batch_size: int,
     prior_tag: str,
     prior_builders: List[PriorBuilder],
+    embedding_map: CGEmbeddingMap,
     device: str = "cpu",
     save_figs:bool=True,
 ):
@@ -105,8 +104,9 @@ def compute_statistics(
                 prior_builder = nl_name2prior_builder[nl_name]
                 prior_builder.accumulate_statistics(nl_name, batch)
 
+    key_map = {v:k for k,v in embedding_map.items()}
     for prior_builder in prior_builders:
-        figs = prior_builder.plot_histograms()
+        figs = prior_builder.histograms.plot_histograms(key_map)
         for (tag, fig) in figs:
             makedirs(osp.join(save_dir,f'{prior_tag}_plots'))
             fig.savefig(osp.join(save_dir,f'{prior_tag}_plots', f'hist_{tag}.png'),

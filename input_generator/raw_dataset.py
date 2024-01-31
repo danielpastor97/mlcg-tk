@@ -416,8 +416,8 @@ class SampleCollection:
         self,
         save_dir: str,
         prior_tag: str,
-        stride: int,
         batch_size: int,
+        stride: int,
     ):
         cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls = self.load_cg_output(
             save_dir, prior_tag

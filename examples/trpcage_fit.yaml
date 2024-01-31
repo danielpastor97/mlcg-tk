@@ -2,6 +2,9 @@ dataset_name: 2JOF
 names: [2JOF]
 tag: ""
 save_dir: /local_scratch2/musil/make_datasets/datasets/input_generator_trpcage/test
-stride: 10
+stride: 100
 batch_size: 10000
-device: cpu
+device: cuda
+save_figs: true
+embedding_map: input_generator.CGEmbeddingMapFiveBead
+

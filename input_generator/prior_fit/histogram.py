@@ -40,19 +40,35 @@ class HistogramsNL:
         figs = []
         for nl_name, hists in self.data.items():
             fig = plt.figure(figsize=(10,6))
-            ax = fig.axes[0]
+            ax = plt.gca()
             ax.set_title(f"histograms for NL:'{nl_name}'")
             if key_map is None:
                 keymap = {k:str(k) for k in hists}
             else:
-                keymap = key_map
+                keymap = {ks:(key_map[k] for k in ks) for ks in hists}
 
             for key, hist in hists.items():
-                ax.plot(self.bin_centers, hist, label=keymap[key])
+                ax.plot(self.bin_centers, hist, label=f"{keymap[key]}")
             ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
             figs.append((nl_name,fig))
 
         return figs
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['data'] = {nl_name: {key: hist for key, hist in hists.items()} for nl_name, hists in self.data.items() }
+        return state
+
+    def __setstate__(self, newstate):
+        n_bins = newstate['n_bins']
+        data = defaultdict(
+            lambda: defaultdict(lambda: np.zeros(n_bins, dtype=np.float64))
+        )
+        for nl_name, hists in newstate['data'].items():
+            for key, hist in hists.items():
+                data[nl_name][key] = hist
+        newstate['data'] = data
+        self.__dict__.update(newstate)
 
 def _get_all_unique_keys(unique_types: torch.Tensor, order: int) -> torch.Tensor:
     """Helper function for returning all unique, symmetrised atom type keys

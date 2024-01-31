@@ -6,8 +6,6 @@ sys.path.insert(0, osp.join(SCRIPT_DIR, "../"))
 
 from input_generator.raw_dataset import SampleCollection, RawDataset
 from input_generator.embedding_maps import (
-    embedding_fivebead,
-    CGEmbeddingMapFiveBead,
     CGEmbeddingMap,
 )
 from input_generator.raw_data_loader import DatasetLoader
