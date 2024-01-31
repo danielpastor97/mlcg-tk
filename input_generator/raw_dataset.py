@@ -14,17 +14,23 @@ from torch_geometric.data.collate import collate
 from mlcg.neighbor_list.neighbor_list import make_neighbor_list
 from mlcg.data.atomic_data import AtomicData
 
-from .utils import map_cg_topology, slice_coord_forces, get_terminal_atoms, get_edges_and_orders
+from .utils import (
+    map_cg_topology,
+    slice_coord_forces,
+    get_terminal_atoms,
+    get_edges_and_orders,
+)
 from .prior_gen import PriorBuilder
 
-def get_strides(n_structure:int, batch_size:int):
+
+def get_strides(n_structure: int, batch_size: int):
     n_elem, remain = np.divmod(n_structure, batch_size)
     assert remain > -1, f"remain: {remain}"
     if remain == 0:
-        batches = np.zeros(n_elem+1)
+        batches = np.zeros(n_elem + 1)
         batches[1:] = batch_size
     else:
-        batches = np.zeros(n_elem+2)
+        batches = np.zeros(n_elem + 2)
         batches[1:-1] = batch_size
         batches[-1] = remain
     strides = np.cumsum(batches, dtype=int)
@@ -33,7 +39,16 @@ def get_strides(n_structure:int, batch_size:int):
 
 
 class CGDataBatch:
-    def __init__(self, cg_coords, cg_forces, cg_embeds, cg_prior_nls,batch_size:int, stride:int, concat_forces:bool=False) -> None:
+    def __init__(
+        self,
+        cg_coords,
+        cg_forces,
+        cg_embeds,
+        cg_prior_nls,
+        batch_size: int,
+        stride: int,
+        concat_forces: bool = False,
+    ) -> None:
         self.batch_size = batch_size
         self.stride = stride
         self.concat_forces = concat_forces
@@ -51,11 +66,12 @@ class CGDataBatch:
 
     def __len__(self):
         return self.n_elem
+
     def __getitem__(self, idx):
-        st,nd = self.strides[idx]
+        st, nd = self.strides[idx]
         data_list = []
         # TODO: build the collated AtomicData by hand to avoid copy/concat ops
-        for ii in range(st,nd):
+        for ii in range(st, nd):
             dd = dict(
                 pos=self.cg_coords[ii],
                 atom_types=self.cg_embeds,
@@ -63,7 +79,7 @@ class CGDataBatch:
                 neighborlist=self.cg_prior_nls,
             )
             if self.concat_forces:
-                dd['forces'] = self.cg_forces[ii]
+                dd["forces"] = self.cg_forces[ii]
 
             data = AtomicData.from_points(**dd)
             data_list.append(data)
@@ -89,20 +105,21 @@ class SampleCollection:
     pdb_fn:
         File location of atomistic structure to be used for topology.
     """
+
     def __init__(
-            self,
-            name: str,
-            tag: str,
+        self,
+        name: str,
+        tag: str,
     ) -> None:
         self.name = name
         self.tag = tag
 
     def apply_cg_mapping(
-            self,
-            cg_atoms: List[str],
-            embedding_function: str,
-            embedding_dict: str,
-            skip_residues: Optional[List[str]]=None
+        self,
+        cg_atoms: List[str],
+        embedding_function: str,
+        embedding_dict: str,
+        skip_residues: Optional[List[str]] = None,
     ):
         """
         Applies mapping function to atomistic topology to obtain CG representation.
@@ -127,15 +144,15 @@ class SampleCollection:
             axis=1,
             cg_atoms=cg_atoms,
             embedding_function=embedding_function,
-            skip_residues=skip_residues
+            skip_residues=skip_residues,
         )
-        cg_df= deepcopy(self.top_dataframe.loc[self.top_dataframe["mapped"] == True])
+        cg_df = deepcopy(self.top_dataframe.loc[self.top_dataframe["mapped"] == True])
 
         cg_atom_idx = cg_df.index.values.tolist()
         self.cg_atom_indices = cg_atom_idx
 
         cg_df.index = [i for i in range(len(cg_df.index))]
-        cg_df.serial = [i+1 for i in range(len(cg_df.index))]
+        cg_df.serial = [i + 1 for i in range(len(cg_df.index))]
         self.cg_dataframe = cg_df
 
         cg_map = np.zeros((len(cg_atom_idx), self.aa_traj.n_atoms))
@@ -152,9 +169,7 @@ class SampleCollection:
         self.C_term = None
 
     def add_terminal_embeddings(
-            self,
-            N_term: Union[str,None]="N",
-            C_term: Union[str,None]="C"
+        self, N_term: Union[str, None] = "N", C_term: Union[str, None] = "C"
     ):
         """
         Adds separate embedding to terminals (do not need to be defined in original embedding_dict).
@@ -177,7 +192,7 @@ class SampleCollection:
                 self.embedding_dict["N_term"] = max(self.embedding_dict.values()) + 1
             N_term_atom = df_cg.loc[
                 (df_cg["resSeq"] == df_cg["resSeq"].min()) & (df_cg["name"] == N_term)
-                ].index
+            ].index
             for idx in N_term_atom:
                 self.cg_dataframe.at[idx, "type"] = self.embedding_dict["N_term"]
 
@@ -186,16 +201,16 @@ class SampleCollection:
                 self.embedding_dict["C_term"] = max(self.embedding_dict.values()) + 1
             C_term_atom = df_cg.loc[
                 (df_cg["resSeq"] == df_cg["resSeq"].max()) & (df_cg["name"] == C_term)
-                ].index
+            ].index
             for idx in C_term_atom:
                 self.cg_dataframe.at[idx, "type"] = self.embedding_dict["C_term"]
 
     def process_coords_forces(
-            self,
-            coords: np.ndarray,
-            forces: np.ndarray,
-            mapping: str="slice_aggregate",
-            force_stride: int=100
+        self,
+        coords: np.ndarray,
+        forces: np.ndarray,
+        mapping: str = "slice_aggregate",
+        force_stride: int = 100,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Maps coordinates and forces to CG resolution
@@ -212,16 +227,14 @@ class SampleCollection:
             Striding to use for force projection results
         """
         if coords.shape != forces.shape:
-            warnings.warn("Cannot process coordinates and forces: mismatch between array shapes.")
+            warnings.warn(
+                "Cannot process coordinates and forces: mismatch between array shapes."
+            )
             return
         else:
             cg_coords, cg_forces = slice_coord_forces(
-                coords,
-                forces,
-                self.cg_map,
-                mapping,
-                force_stride
-                )
+                coords, forces, self.cg_map, mapping, force_stride
+            )
 
             self.cg_coords = cg_coords
             self.cg_forces = cg_forces
@@ -229,11 +242,11 @@ class SampleCollection:
             return cg_coords, cg_forces
 
     def save_cg_output(
-            self,
-            save_dir: str,
-            save_coord_force: bool=True,
-            cg_coords: Union[np.ndarray,None]=None,
-            cg_forces: Union[np.ndarray,None]=None
+        self,
+        save_dir: str,
+        save_coord_force: bool = True,
+        cg_coords: Union[np.ndarray, None] = None,
+        cg_forces: Union[np.ndarray, None] = None,
     ):
         """
         Saves processed CG data.
@@ -267,7 +280,9 @@ class SampleCollection:
         if save_coord_force:
             if cg_coords == None:
                 if not hasattr(self, "cg_coords"):
-                    print("No coordinates found; only CG structure, embeddings and loaded forces will be saved.")
+                    print(
+                        "No coordinates found; only CG structure, embeddings and loaded forces will be saved."
+                    )
                 else:
                     np.save(f"{save_templ}_cg_coords.npy", self.cg_coords)
             else:
@@ -275,17 +290,16 @@ class SampleCollection:
 
             if cg_forces == None:
                 if not hasattr(self, "cg_forces"):
-                    print("No forces found;  only CG structure, embeddings, and loaded coordinates will be saved.")
+                    print(
+                        "No forces found;  only CG structure, embeddings, and loaded coordinates will be saved."
+                    )
                 else:
                     np.save(f"{save_templ}_cg_forces.npy", self.cg_forces)
             else:
                 np.save(f"{save_templ}_cg_forces.npy", cg_forces)
 
     def get_prior_nls(
-            self,
-            prior_builders: List[PriorBuilder],
-            save_nls: bool=True,
-            **kwargs
+        self, prior_builders: List[PriorBuilder], save_nls: bool = True, **kwargs
     ) -> Dict:
         """
         Creates neighbourlists for all prior terms specified in the prior_dict.
@@ -350,59 +364,72 @@ class SampleCollection:
                     prior_builder,
                     cg_dataframe=self.cg_dataframe,
                     N_term=self.N_term,
-                    C_term=self.C_term
-                    )
+                    C_term=self.C_term,
+                )
 
         # get atom groups for edges and orders for all prior terms
         cg_top = self.aa_traj.atom_slice(self.cg_atom_indices).topology
+
+        all_edges_and_orders = get_edges_and_orders(
+            prior_builders,
+            topology=cg_top,
+        )
+
+        tags = [x[0] for x in all_edges_and_orders]
+        orders = [x[1] for x in all_edges_and_orders]
+        edges = [
+            torch.tensor(x[2]).type(torch.LongTensor)
+            if isinstance(x[2], np.ndarray)
+            else x[2].type(torch.LongTensor)
+            for x in all_edges_and_orders
+        ]
         prior_nls = {}
-        for prior_builder in prior_builders:
-            # TODO change rational to 
-            all_edges_and_orders = get_edges_and_orders(
-                [prior_builder],
-                topology=cg_top,
-                )
-
-            tags = [x[0] for x in all_edges_and_orders]
-            orders = [x[1] for x in all_edges_and_orders]
-            edges = [
-                torch.tensor(x[2]).type(torch.LongTensor) if isinstance(x[2], np.ndarray)
-                else x[2].type(torch.LongTensor) for x in all_edges_and_orders
-            ]
-
-            for tag, order, edge in zip(tags, orders, edges):
-                nl = make_neighbor_list(tag, order, edge)
-                prior_nls[tag] = nl
-                prior_builder.set_neighbor_list(tag, nl)
+        for tag, order, edge in zip(tags, orders, edges):
+            nl = make_neighbor_list(tag, order, edge)
+            prior_nls[tag] = nl
 
         if save_nls:
-            ofile = os.path.join(kwargs["save_dir"], f"{self.tag}{self.name}_prior_nls_{kwargs['prior_tag']}.pkl")
-            with open(
-                ofile,"wb") as pfile:
+            ofile = os.path.join(
+                kwargs["save_dir"],
+                f"{self.tag}{self.name}_prior_nls_{kwargs['prior_tag']}.pkl",
+            )
+            with open(ofile, "wb") as pfile:
                 pickle.dump(prior_nls, pfile)
 
         return prior_nls
 
-    def load_cg_output(self, save_dir:str, prior_tag:str=""):
+    def load_cg_output(self, save_dir: str, prior_tag: str = ""):
         save_templ = os.path.join(save_dir, f"{self.tag}{self.name}")
         cg_coords = np.load(f"{save_templ}_cg_coords.npy")
         cg_forces = np.load(f"{save_templ}_cg_forces.npy")
         cg_embeds = np.load(f"{save_templ}_cg_embeds.npy")
         cg_pdb = md.load(f"{save_templ}_cg_structure.pdb")
         # load NLs
-        ofile = os.path.join(save_dir, f"{self.tag}{self.name}_prior_nls_{prior_tag}.pkl")
-        with open(ofile,"rb") as f:
-                cg_prior_nls = pickle.load(f)
+        ofile = os.path.join(
+            save_dir, f"{self.tag}{self.name}_prior_nls_{prior_tag}.pkl"
+        )
+        with open(ofile, "rb") as f:
+            cg_prior_nls = pickle.load(f)
         return cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls
 
-    def load_cg_output_into_batches(self, save_dir:str, prior_tag:str,
-                                          stride:int, batch_size: int,):
-        cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls = self.load_cg_output(save_dir, prior_tag)
-        batch_list = CGDataBatch(cg_coords, cg_forces, cg_embeds, cg_prior_nls, batch_size, stride)
+    def load_cg_output_into_batches(
+        self,
+        save_dir: str,
+        prior_tag: str,
+        stride: int,
+        batch_size: int,
+    ):
+        cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls = self.load_cg_output(
+            save_dir, prior_tag
+        )
+        batch_list = CGDataBatch(
+            cg_coords, cg_forces, cg_embeds, cg_prior_nls, batch_size, stride
+        )
         return batch_list
 
+
 class RawDataset:
-    def __init__(self, dataset_name:str, names: List[str], tag: str) -> None:
+    def __init__(self, dataset_name: str, names: List[str], tag: str) -> None:
         self.dataset_name = dataset_name
         self.names = names
         self.tag = tag
@@ -420,5 +447,3 @@ class RawDataset:
 
     def __len__(self):
         return len(self.dataset)
-
-

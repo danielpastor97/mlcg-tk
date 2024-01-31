@@ -1,4 +1,3 @@
-
 import os.path as osp
 import sys
 
@@ -7,38 +6,40 @@ sys.path.insert(0, osp.join(SCRIPT_DIR, "../"))
 
 from input_generator.raw_dataset import SampleCollection, RawDataset
 from input_generator.raw_data_loader import DatasetLoader
-from input_generator.embedding_maps import embedding_fivebead, CGEmbeddingMapFiveBead, CGEmbeddingMap
-from input_generator.prior_gen import Bonds,PriorBuilder
-
+from input_generator.embedding_maps import (
+    embedding_fivebead,
+    CGEmbeddingMapFiveBead,
+    CGEmbeddingMap,
+)
+from input_generator.prior_gen import Bonds, PriorBuilder
+from input_generator.prior_fit import HistogramsNL
 from tqdm import tqdm
 import torch
 from time import ctime
 import numpy as np
 import pickle as pck
-from typing import Dict,List,Union, Callable, Optional
+from typing import Dict, List, Union, Callable, Optional
 from jsonargparse import CLI
 from scipy.integrate import trapezoid
 from collections import defaultdict
+# import seaborn as sns
+
 
 from mlcg.data.atomic_data import AtomicData
-from mlcg.nn.prior import Harmonic,_Prior
+from mlcg.nn.prior import Harmonic, _Prior
 from mlcg.nn.gradients import GradientsOut, SumOut
 from mlcg.geometry._symmetrize import _symmetrise_map, _flip_map
-from mlcg.utils import tensor2tuple
-
-
+from mlcg.utils import tensor2tuple, makedirs
 
 
 def fit_potentials(
-        histograms: Dict,
-        prior_fit_fn:Callable,
-        target_fit_kwargs: Optional[Dict] = None
+    histograms: Dict, prior_fit_fn: Callable, target_fit_kwargs: Optional[Dict] = None
 ):
     if target_fit_kwargs == None:
         target_fit_kwargs = {}
 
     kB = 0.0019872041
-    beta = 1 / (300 * kB) # this will be tunable just hard coded for testing
+    beta = 1 / (300 * kB)  # this will be tunable just hard coded for testing
 
     statistics = {}
     for kf in histograms.keys():
@@ -65,51 +66,72 @@ def fit_potentials(
 
 
 def compute_statistics(
-    dataset_name:str,
+    dataset_name: str,
     names: List[str],
-    tag:str,
-    save_dir:str,
-    stride:int,
+    tag: str,
+    save_dir: str,
+    stride: int,
     batch_size: int,
-    prior_tag:str,
-    # prior_builders: List[PriorBuilder],
-    device:str="cpu"
+    prior_tag: str,
+    prior_builders: List[PriorBuilder],
+    device: str = "cpu",
+    save_figs:bool=True,
 ):
-    fnout = osp.join(save_dir,f'prior_builders_{prior_tag}.pck')
+    fnout = osp.join(save_dir,f'{prior_tag}_prior_builders.pck')
+
+    all_nl_names = set()
+    nl_name2prior_builder = {}
+    for prior_builder in prior_builders:
+        for nl_name in prior_builder.nl_builder_fn.nl_names:
+            all_nl_names.add(nl_name)
+            nl_name2prior_builder[nl_name] = prior_builder
 
     dataset = RawDataset(dataset_name, names, tag)
-    # histograms = defaultdict(get_zeros)
-    for samples in tqdm(dataset, f"Compute histograms of CG data for {dataset_name} dataset..."):
-        batch_list = samples.load_cg_output_into_batches(save_dir, prior_tag, batch_size, stride)
+    for samples in tqdm(
+        dataset, f"Compute histograms of CG data for {dataset_name} dataset..."
+    ):
+        batch_list = samples.load_cg_output_into_batches(
+            save_dir, prior_tag, batch_size, stride
+        )
+        nl_names = set(batch_list[0].neighbor_list.keys())
 
-        fn = osp.join(save_dir, f"{samples.name}_prior_builders_nl_{prior_tag}.pck")
-        with open(fn, 'rb') as f:
-            prior_builders = pck.load(f)
+        assert nl_names.issubset(
+            all_nl_names
+        ), f"some of the NL names '{nl_names}' in {dataset_name}:{samples.name} have not been registered in the nl_builder_fns '{all_nl_names}'"
+
         for batch in tqdm(batch_list, f"molecule name: {samples.name}", leave=False):
-            # TODO: check NL names and how to deal with it in PriorFit
-            for prior_builder in prior_builders:
-                prior_builder.accumulate_histogram(batch.to(device))
+            batch = batch.to(device)
+            for nl_name in nl_names:
+                prior_builder = nl_name2prior_builder[nl_name]
+                prior_builder.accumulate_statistics(nl_name, batch)
+
+    for prior_builder in prior_builders:
+        figs = prior_builder.plot_histograms()
+        for (tag, fig) in figs:
+            makedirs(osp.join(save_dir,f'{prior_tag}_plots'))
+            fig.savefig(osp.join(save_dir,f'{prior_tag}_plots', f'hist_{tag}.png'),
+            dpi=300, bbox_inches='tight')
 
     with open(fnout, 'wb') as f:
         pck.dump(prior_builders, f)
 
 
 def fit_priors(
-    dataset_name:str,
+    dataset_name: str,
     names: List[str],
     sample_loader: DatasetLoader,
-    raw_data_dir:str,
-    tag:str,
-    pdb_template_fn:str,
-    save_dir:str,
+    raw_data_dir: str,
+    tag: str,
+    pdb_template_fn: str,
+    save_dir: str,
     cg_atoms: List[str],
     embedding_map: CGEmbeddingMap,
     embedding_func: Callable,
-    skip_residues:List[str],
+    skip_residues: List[str],
     use_terminal_embeddings: bool,
-    cg_mapping_strategy:str,
+    cg_mapping_strategy: str,
     prior_builders: List[PriorBuilder],
-    prior_tag:str,
+    prior_tag: str,
     fit_parameters: Dict,
 ):
     dataset = RawDataset(dataset_name, names, tag)
@@ -125,17 +147,13 @@ def fit_priors(
         )
 
         if use_terminal_embeddings:
-            #TODO: fix usage add_terminal_embeddings wrt inputs
+            # TODO: fix usage add_terminal_embeddings wrt inputs
             samples.add_terminal_embeddings(
-                N_term=sub_data_dict["N_term"],
-                C_term=sub_data_dict["C_term"]
+                N_term=sub_data_dict["N_term"], C_term=sub_data_dict["C_term"]
             )
 
         prior_nls = samples.get_prior_nls(
-            prior_dict,
-            save_nls=True,
-            save_dir=save_dir,
-            prior_tag=prior_tag
+            prior_dict, save_nls=True, save_dir=save_dir, prior_tag=prior_tag
         )
 
         batch_list = CGDataBatch(
@@ -144,12 +162,18 @@ def fit_priors(
             cg_embeds,
             cg_prior_nls,
             fit_parameters["batch_size"],
-            fit_parameters["stride"]
+            fit_parameters["stride"],
         )
 
-        for batch in tqdm(batch_list, f"molecule name: {samples.name}", leave=False, disable=False):
+        for batch in tqdm(
+            batch_list, f"molecule name: {samples.name}", leave=False, disable=False
+        ):
             for builder in prior_builders:
-                targets = [name for name in builder.nl_builder.nl_names if name in cg_prior_nls]
+                targets = [
+                    name
+                    for name in builder.nl_builder_fn.nl_names
+                    if name in cg_prior_nls
+                ]
                 for target in targets:
                     prior_counts[target] = {}
                     histograms = compute_hist(
@@ -166,16 +190,15 @@ def fit_priors(
     statistics = {}
     prior_models = {}
     for builder in prior_builders:
-        nl_names = builder.nl_builder.nl_names
+        nl_names = builder.nl_builder_fn.nl_names
         targets = [name for name in nl_names if name in cg_prior_nls]
         for target in targets:
             statistics[target] = fit_potentials(
-                histograms = prior_counts[target],
-                prior_fit_fn = builder.prior_fit_fn,
+                histograms=prior_counts[target],
+                prior_fit_fn=builder.prior_fit_fn,
             )
             prior_models[target] = GradientsOut(
-                builder.prior_model(statistics[target], name=target),
-                targets="forces"
+                builder.prior_model(statistics[target], name=target), targets="forces"
             )
 
     modules = torch.nn.ModuleDict(prior_models)
@@ -184,7 +207,6 @@ def fit_priors(
         full_prior_model,
         "test_prior_model.pt",
     )
-
 
 
 if __name__ == "__main__":
