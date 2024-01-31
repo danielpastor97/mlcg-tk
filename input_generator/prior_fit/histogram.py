@@ -1,5 +1,6 @@
 import torch
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from typing import Dict
 from collections import defaultdict
 import numpy as np
@@ -10,6 +11,8 @@ from mlcg.nn.prior import _Prior
 from mlcg.geometry._symmetrize import _symmetrise_map, _flip_map
 from mlcg.utils import tensor2tuple
 
+
+plt.rcParams['figure.max_open_warning'] = 50
 
 class HistogramsNL:
     def __init__(
@@ -45,11 +48,12 @@ class HistogramsNL:
             if key_map is None:
                 keymap = {k:str(k) for k in hists}
             else:
-                keymap = {ks:(key_map[k] for k in ks) for ks in hists}
+                keymap = {ks:list([key_map[k] for k in ks]) for ks in hists}
 
             for key, hist in hists.items():
-                ax.plot(self.bin_centers, hist, label=f"{keymap[key]}")
-            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+                norm = np.abs(hist).max()
+                ax.plot(self.bin_centers, hist/norm, label=f"{keymap[key]}")
+            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncols=len(hists) // 20 + 1)
             figs.append((nl_name,fig))
 
         return figs

@@ -169,8 +169,8 @@ class Trpcage_loader(DatasetLoader):
         for cfn, ffn in zip(coords_fns, forces_fns):
             force = np.load(ffn)
             coord = np.load(cfn)
-            coord = 10.0 * coord  # convert nm to angstroms
-            force = force / 41.84  # convert to from kJ/mol/nm to kcal/mol/ang
+            coord = coord #* 10
+            force = force / 4.184  # convert to from kJ/mol/ang to kcal/mol/ang
             assert coord.shape == force.shape
             aa_coord_list.append(coord)
             aa_force_list.append(force)

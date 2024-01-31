@@ -48,8 +48,8 @@ class Bonds(PriorBuilder):
         nl_builder_fn: Callable,
         separate_termini: bool,
         n_bins: int,
-        bmin: int,
-        bmax: int,
+        bmin: float,
+        bmax: float,
         prior_fit_fn: Callable,
     ) -> None:
         super().__init__(
@@ -89,8 +89,8 @@ class Angles(PriorBuilder):
         nl_builder_fn: Callable,
         separate_termini: bool,
         n_bins: int,
-        bmin: int,
-        bmax: int,
+        bmin: float,
+        bmax: float,
         prior_fit_fn: Callable,
     ) -> None:
         super().__init__(

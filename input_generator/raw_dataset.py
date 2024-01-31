@@ -374,7 +374,6 @@ class SampleCollection:
             prior_builders,
             topology=cg_top,
         )
-
         tags = [x[0] for x in all_edges_and_orders]
         orders = [x[1] for x in all_edges_and_orders]
         edges = [
