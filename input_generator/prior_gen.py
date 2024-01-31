@@ -3,39 +3,61 @@ import numpy as np
 
 from typing import Callable, Optional
 from collections import defaultdict
-from mlcg.nn.prior import HarmonicBonds, HarmonicAngles, Dihedral, Repulsion, GeneralBonds, GeneralAngles
+from copy import deepcopy
 
+from mlcg.nn.prior import HarmonicBonds, HarmonicAngles, Dihedral, Repulsion, _Prior, GeneralBonds, GeneralAngles
+from mlcg.data import AtomicData
+from .prior_fit.histogram import compute_hist, _get_bin_centers
 
 
 class PriorBuilder:
-    def __init__(
-            self, 
+    def __init__(self,
             n_bins:int,
             bmin: int,
             bmax: int,
-            nl_builder:Callable, 
+            nl_builder:Callable,
             prior_fit_fn:Callable,
-            target_prior:Callable,
-            prior_model: Callable,
+            prior_cls: _Prior,
     ) -> None:
+
         self.n_bins = n_bins
         self.bmin = bmin
         self.bmax = bmax
-        self.histograms = defaultdict(lambda : np.zeros(n_bins, dtype=np.float64))
+        self.bin_centers = _get_bin_centers(n_bins, bmin, bmax)
+        self.histograms = defaultdict(lambda :defaultdict(lambda : np.zeros(n_bins, dtype=np.float64)))
+
         self.prior_fit_fn = prior_fit_fn
         self.nl_builder = nl_builder
-        self.target_prior = target_prior
-        self.prior_model = prior_model
+        self.prior_cls = prior_cls
+        # self.neighbor_lists = {}
 
     def build_nl(self, topology, **kwargs):
         return self.nl_builder(topology)
 
+    def set_neighbor_list(self, tag, nl):
+        self.neighbor_lists[tag] = deepcopy(nl)
+
+    def accumulate_histogram(self, data: AtomicData):
+        atom_types = data.atom_types
+        for nl_tag in self.neighbor_lists.keys():
+            mapping = data.neighbor_list[nl_tag]["index_mapping"]
+            values = self.prior_cls.compute_features(data.pos, mapping)
+            hists = compute_hist(values,atom_types,mapping,self.n_bins,self.bmin,self.bmax)
+            for k, hist in hists.items():
+                self.histograms[nl_tag][k] += hist.cpu().numpy()
+
+    # def plot_histograms(self, fn:Optional[str]):
+    #     for k, hist in self.histograms.items():
+
+
+
+
 class Bonds(PriorBuilder):
     def __init__(
             self,
-            name:str, 
+            name:str,
             nl_builder:Callable,
-            separate_termini:bool, 
+            separate_termini:bool,
             n_bins:int,
             bmin:int,
             bmax:int,
@@ -47,8 +69,7 @@ class Bonds(PriorBuilder):
             bmax=bmax,
             nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
-            target_prior=HarmonicBonds,
-            prior_model=GeneralBonds
+            prior_cls=HarmonicBonds,
         )
         self.name = name
         self.type = "bonds"
@@ -67,7 +88,7 @@ class Bonds(PriorBuilder):
         )
 
 class Angles(PriorBuilder):
-    def __init__(self, 
+    def __init__(self,
                  name:str,
                  nl_builder:Callable,
                 separate_termini:bool,
@@ -82,8 +103,7 @@ class Angles(PriorBuilder):
             bmax=bmax,
             nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
-            target_prior=HarmonicAngles,
-            prior_model=GeneralAngles,
+            prior_cls=HarmonicAngles,
         )
         self.name = name
         self.type = "angles"
@@ -108,10 +128,10 @@ class NonBonded(PriorBuilder):
                 min_pair:int,
                 res_exclusion:int,
                 separate_termini:bool,
-                n_bins:int,
+                n_bins:int,bmin:float,bmax:float,
                 prior_fit_fn:Callable
     ) -> None:
-        super().__init__(n_bins,nl_builder,prior_fit_fn)
+        super().__init__(n_bins,nl_builder,prior_fit_fn,prior_cls=Repulsion)
         self.name = name
         self.type = "non_bonded"
         self.min_pair = min_pair
@@ -136,11 +156,9 @@ class NonBonded(PriorBuilder):
 
 class Dihedrals(PriorBuilder):
     def __init__(self, name:str, nl_builder:Callable,
-                    n_bins:int,
-                    prior_fit_fn:Callable) -> None:
-        super().__init__(n_bins,nl_builder,prior_fit_fn)
+                    n_bins:int,bmin:float,bmax:float,
+                    prior_fit_fn:Callable,) -> None:
+        super().__init__(n_bins,nl_builder,prior_fit_fn,prior_cls=Dihedral)
         self.name = name
         self.type = "dihedrals"
 
-    def build_nl(self, topology, **kwargs):
-        return self.nl_builder(topology)
