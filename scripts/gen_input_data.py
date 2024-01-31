@@ -15,7 +15,7 @@ from time import ctime
 
 from typing import Dict,List,Union, Callable
 from jsonargparse import CLI
-
+import pickle as pck
 
 
 def process_raw_dataset(
@@ -104,7 +104,9 @@ def process_raw_dataset(
 
         samples.save_cg_output(save_dir, save_coord_force=True)
 
-
+        fn = osp.join(save_dir, f"{samples.name}_prior_builders_nl_{prior_tag}.pck")
+        with open(fn, 'wb') as f:
+            pck.dump(prior_builders, f)
 
 
 if __name__ == "__main__":
