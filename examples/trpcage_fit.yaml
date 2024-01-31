@@ -3,6 +3,5 @@ names: [2JOF]
 tag: ""
 save_dir: /local_scratch2/musil/make_datasets/datasets/input_generator_trpcage/test
 stride: 10
-batch_size: 1000
+batch_size: 10000
 device: cpu
-prior_tag: cgschnet

@@ -9,7 +9,11 @@ To prepare simulation data for eventual use in training a transferable CG forcef
 
 Command:
 
-`python gen_input_data.py --config trpcage.yaml`
+`python ../scripts/gen_input_data.py process_raw_dataset --config trpcage.yaml`
+
+`python ../scripts/gen_input_data.py build_neighborlists --config trpcage.yaml --config trpcage_priors.yaml`
+
+`python ../scripts/fit_priors.py compute_statistics --config trpcage_fit.yaml --config trpcage_priors.yaml`
 
 This procedure will loop over all of the datasets provided in the `--data_dict` and the corresponding sample names in `--names` (both arguments accept multiple input files). For each instance, it will load the atomistic coordinates, forces, and structures and map these to a lower resolution specified in the input file (this allows for various resolutions and CG embeddings to be used). Then, using the keys of the `--prior_dict`, the script will generate a neighbourlist for each molecule, so long as the prior terms and their corresponding functions specified in the input file are defined in `prior_terms.py`.
 
