@@ -1,15 +1,60 @@
 import torch
-
+import matplotlib.pyplot as plt
 from typing import Dict
+from collections import defaultdict
+import numpy as np
+from copy import deepcopy
 
 from mlcg.data.atomic_data import AtomicData
 from mlcg.nn.prior import _Prior
 from mlcg.geometry._symmetrize import _symmetrise_map, _flip_map
 from mlcg.utils import tensor2tuple
 
-def _get_all_unique_keys(
-    unique_types: torch.Tensor, order: int
-) -> torch.Tensor:
+
+class HistogramsNL:
+    def __init__(
+        self,
+        n_bins: int,
+        bmin: float,
+        bmax: float,
+    ) -> None:
+        self.n_bins = n_bins
+        self.bmin = bmin
+        self.bmax = bmax
+        self.bin_centers = _get_bin_centers(n_bins, bmin, bmax)
+        self.data = defaultdict(
+            lambda: defaultdict(lambda: np.zeros(n_bins, dtype=np.float64))
+        )
+
+    def accumulate_statistics(self, nl_name: str, values, atom_types, mapping):
+        hists = compute_hist(
+            values, atom_types, mapping, self.n_bins, self.bmin, self.bmax
+        )
+        for k, hist in hists.items():
+            self.data[nl_name][k] += hist
+
+    def __getitem__(self, nl_name: str):
+        return deepcopy(self.data[nl_name])
+
+    def plot_histograms(self, key_map=None):
+        figs = []
+        for nl_name, hists in self.data.items():
+            fig = plt.figure(figsize=(10,6))
+            ax = fig.axes[0]
+            ax.set_title(f"histograms for NL:'{nl_name}'")
+            if key_map is None:
+                keymap = {k:str(k) for k in hists}
+            else:
+                keymap = key_map
+
+            for key, hist in hists.items():
+                ax.plot(self.bin_centers, hist, label=keymap[key])
+            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+            figs.append((nl_name,fig))
+
+        return figs
+
+def _get_all_unique_keys(unique_types: torch.Tensor, order: int) -> torch.Tensor:
     """Helper function for returning all unique, symmetrised atom type keys
 
     Parameters
@@ -31,9 +76,8 @@ def _get_all_unique_keys(
     unique_sym_keys = torch.unique(sym_keys, dim=1)
     return unique_sym_keys
 
-def _get_bin_centers(
-    nbins: int, b_min: float, b_max: float
-) -> torch.Tensor:
+
+def _get_bin_centers(nbins: int, b_min: float, b_max: float) -> torch.Tensor:
     """Returns bin centers for histograms.
 
     Parameters
@@ -62,16 +106,15 @@ def _get_bin_centers(
 
     delta = (b_max - b_min) / nbins
     bin_centers = (
-        b_min
-        + 0.5 * delta
-        + torch.arange(0, nbins, dtype=torch.float64) * delta
+        b_min + 0.5 * delta + torch.arange(0, nbins, dtype=torch.float64) * delta
     )
     return bin_centers
+
 
 def compute_hist(
     values: torch.Tensor,
     atom_types: torch.Tensor,
-    mapping:torch.Tensor,
+    mapping: torch.Tensor,
     nbins: int,
     bmin: float,
     bmax: float,
@@ -82,15 +125,11 @@ def compute_hist(
 
 
     """
-    if target_fit_kwargs == None:
-        target_fit_kwargs = {}
     unique_types = torch.unique(atom_types)
     order = mapping.shape[0]
     unique_keys = _get_all_unique_keys(unique_types, order)
 
-    interaction_types = torch.vstack(
-        [atom_types[mapping[ii]] for ii in range(order)]
-    )
+    interaction_types = torch.vstack([atom_types[mapping[ii]] for ii in range(order)])
 
     interaction_types = _symmetrise_map[order](interaction_types)
 
@@ -99,10 +138,7 @@ def compute_hist(
         # find which values correspond to unique_key type of interaction
         mask = torch.all(
             torch.vstack(
-                [
-                    interaction_types[ii, :] == unique_key[ii]
-                    for ii in range(order)
-                ]
+                [interaction_types[ii, :] == unique_key[ii] for ii in range(order)]
             ),
             dim=0,
         )
@@ -113,9 +149,10 @@ def compute_hist(
         hist = torch.histc(val, bins=nbins, min=bmin, max=bmax)
 
         kf = tensor2tuple(_flip_map[order](unique_key))
-        histograms[kf] = hist
+        histograms[kf] = hist.cpu().numpy()
 
     return histograms
+
 
 def compute_hist_old(
     data: AtomicData,
@@ -151,10 +188,7 @@ def compute_hist_old(
         # find which values correspond to unique_key type of interaction
         mask = torch.all(
             torch.vstack(
-                [
-                    interaction_types[ii, :] == unique_key[ii]
-                    for ii in range(order)
-                ]
+                [interaction_types[ii, :] == unique_key[ii] for ii in range(order)]
             ),
             dim=0,
         )

@@ -21,7 +21,7 @@ def with_attrs(**func_attrs):
         def wrapper(*args, **kwargs):
             return fn(*args, **kwargs)
 
-        for attr, value in func_attrs.iteritems():
+        for attr, value in func_attrs.items():
             setattr(wrapper, attr, value)
 
         return wrapper

@@ -20,7 +20,7 @@ from .embedding_maps import all_residues
 
 
 @with_attrs(nl_names=["n_term_bonds", "bulk_bonds", "c_term_bonds", "bonds"])
-def standard_bond(
+def standard_bonds(
     topology: md.Topology, separate_termini: bool = True, **kwargs
 ) -> Union[List[Tuple[str, int, torch.Tensor]], Tuple[str, int, torch.Tensor]]:
     mlcg_top = Topology.from_mdtraj(topology)
@@ -228,7 +228,7 @@ def omega(topology: md.Topology, **kwargs) -> List[Tuple[str, int, torch.Tensor]
 
 
 @with_attrs(nl_names=["gamma_1"])
-def gamma1(topology: md.Topology, **kwargs) -> Tuple[str, int, torch.Tensor]:
+def gamma_1(topology: md.Topology, **kwargs) -> Tuple[str, int, torch.Tensor]:
     dihedral_dict = get_dihedral_groups(
         topology,
         atoms_needed=["N", "CB", "C", "CA"],
@@ -246,7 +246,7 @@ def gamma1(topology: md.Topology, **kwargs) -> Tuple[str, int, torch.Tensor]:
 
 
 @with_attrs(nl_names=["gamma_2"])
-def gamma2(topology: md.Topology, **kwargs) -> Tuple[str, int, torch.Tensor]:
+def gamma_2(topology: md.Topology, **kwargs) -> Tuple[str, int, torch.Tensor]:
     dihedral_dict = get_dihedral_groups(
         topology,
         atoms_needed=["CA", "O", "N", "C"],

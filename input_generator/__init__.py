@@ -10,14 +10,14 @@ from .raw_data_loader import (
 from .embedding_maps import CGEmbeddingMap, CGEmbeddingMapFiveBead, embedding_fivebead
 
 from .prior_nls import (
-    standard_bond,
+    standard_bonds,
     standard_angles,
     non_bonded,
     phi,
     psi,
     omega,
-    gamma1,
-    gamma2,
+    gamma_1,
+    gamma_2,
 )
 
 from .prior_fit import fit_harmonic_from_potential_estimates, harmonic
