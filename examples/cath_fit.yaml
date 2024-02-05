@@ -1,0 +1,10 @@
+dataset_name: CATH
+names: [1b43A02]
+tag: "cath_"
+save_dir: /import/a12/users/aguljas/mlcg-playground/outputs/ 
+stride: 1000
+batch_size: 10000
+device: cpu
+save_figs: false
+embedding_map: input_generator.CGEmbeddingMapFiveBead
+

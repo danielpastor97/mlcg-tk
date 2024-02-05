@@ -14,6 +14,8 @@ from mlcg.nn.prior import (
     GeneralBonds,
     GeneralAngles,
 )
+from mlcg.nn.gradients import GradientsOut
+
 from mlcg.data import AtomicData
 from .prior_fit.histogram import compute_hist, HistogramsNL
 
@@ -22,17 +24,17 @@ class PriorBuilder:
     def __init__(
         self,
         histograms: HistogramsNL,
-        nl_builder_fn: Callable,
+        nl_builder: Callable,
         prior_fit_fn: Callable,
         prior_cls: _Prior,
     ) -> None:
         self.histograms = histograms
         self.prior_fit_fn = prior_fit_fn
-        self.nl_builder_fn = nl_builder_fn
+        self.nl_builder = nl_builder
         self.prior_cls = prior_cls
 
     def build_nl(self, topology, **kwargs):
-        return self.nl_builder_fn(topology)
+        return self.nl_builder(topology)
 
     def accumulate_statistics(self, nl_name: str, data: AtomicData):
         atom_types = data.atom_types
@@ -45,7 +47,7 @@ class Bonds(PriorBuilder):
     def __init__(
         self,
         name: str,
-        nl_builder_fn: Callable,
+        nl_builder: Callable,
         separate_termini: bool,
         n_bins: int,
         bmin: float,
@@ -58,7 +60,7 @@ class Bonds(PriorBuilder):
                 bmin=bmin,
                 bmax=bmax,
             ),
-            nl_builder_fn=nl_builder_fn,
+            nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
             prior_cls=HarmonicBonds,
         )
@@ -72,7 +74,7 @@ class Bonds(PriorBuilder):
         self.c_atoms = None
 
     def build_nl(self, topology, **kwargs):
-        return self.nl_builder_fn(
+        return self.nl_builder(
             topology,
             separate_termini=self.separate_termini,
             n_term_atoms=self.n_term_atoms,
@@ -80,13 +82,17 @@ class Bonds(PriorBuilder):
             n_atoms=self.n_atoms,
             c_atoms=self.c_atoms,
         )
-
+    
+    def get_prior_model(self, statistics, targets="forces", **kwargs):
+        return GradientsOut(
+            self.prior_cls(statistics), targets="forces"
+        )
 
 class Angles(PriorBuilder):
     def __init__(
         self,
         name: str,
-        nl_builder_fn: Callable,
+        nl_builder: Callable,
         separate_termini: bool,
         n_bins: int,
         bmin: float,
@@ -99,7 +105,7 @@ class Angles(PriorBuilder):
                 bmin=bmin,
                 bmax=bmax,
             ),
-            nl_builder_fn=nl_builder_fn,
+            nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
             prior_cls=HarmonicAngles,
         )
@@ -113,7 +119,7 @@ class Angles(PriorBuilder):
         self.c_atoms = None
 
     def build_nl(self, topology, **kwargs):
-        return self.nl_builder_fn(
+        return self.nl_builder(
             topology,
             separate_termini=self.separate_termini,
             n_term_atoms=self.n_term_atoms,
@@ -121,13 +127,18 @@ class Angles(PriorBuilder):
             n_atoms=self.n_atoms,
             c_atoms=self.c_atoms,
         )
+    
+    def get_prior_model(self, statistics, targets="forces", **kwargs):
+        return GradientsOut(
+            self.prior_cls(statistics), targets="forces"
+        )
 
 
 class NonBonded(PriorBuilder):
     def __init__(
         self,
         name: str,
-        nl_builder_fn: Callable,
+        nl_builder: Callable,
         min_pair: int,
         res_exclusion: int,
         separate_termini: bool,
@@ -142,7 +153,7 @@ class NonBonded(PriorBuilder):
                 bmin=bmin,
                 bmax=bmax,
             ),
-            nl_builder_fn=nl_builder_fn,
+            nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
             prior_cls=Repulsion,
         )
@@ -160,7 +171,7 @@ class NonBonded(PriorBuilder):
     def build_nl(self, topology, **kwargs):
         bond_edges = kwargs["bond_edges"]
         angle_edges = kwargs["angle_edges"]
-        return self.nl_builder_fn(
+        return self.nl_builder(
             topology,
             bond_edges=bond_edges,
             angle_edges=angle_edges,
@@ -172,13 +183,18 @@ class NonBonded(PriorBuilder):
             n_atoms=self.n_atoms,
             c_atoms=self.c_atoms,
         )
+    
+    def get_prior_model(self, statistics, targets="forces", **kwargs):
+        return GradientsOut(
+            self.prior_cls(statistics), targets="forces"
+        )
 
 
 class Dihedrals(PriorBuilder):
     def __init__(
         self,
         name: str,
-        nl_builder_fn: Callable,
+        nl_builder: Callable,
         n_bins: int,
         bmin: float,
         bmax: float,
@@ -190,9 +206,14 @@ class Dihedrals(PriorBuilder):
                 bmin=bmin,
                 bmax=bmax,
             ),
-            nl_builder_fn=nl_builder_fn,
+            nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
             prior_cls=Dihedral,
         )
         self.name = name
         self.type = "dihedrals"
+
+    def get_prior_model(self, statistics, targets="forces", **kwargs):
+        return GradientsOut(
+            self.prior_cls(statistics, n_degs=kwargs["n_degs"]), targets="forces"
+        )
