@@ -97,6 +97,7 @@ class StandardAngles:
 
 class Non_Bonded:
     nl_names = ["n_term_nonbonded", "bulk_nonbonded", "c_term_nonbonded", "non_bonded"]
+    allow_fit_from_values = True
     def __call__(
         topology: md.Topology,
         bond_edges: Union[np.array, List, None]=None,
@@ -195,6 +196,7 @@ class Psi:
 
 class Omega:
     nl_names = ["pro_omega", "non_pro_omega"]
+    replace_gly_ca_stats = True
     def __call__(
         topology: md.Topology,
         **kwargs

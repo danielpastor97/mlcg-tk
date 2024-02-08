@@ -7,4 +7,6 @@ batch_size: 10000
 device: cpu
 save_figs: false
 embedding_map: input_generator.CGEmbeddingMapFiveBead
+percentile: 1
+cutoff: 6
 
