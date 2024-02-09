@@ -1,0 +1,20 @@
+dataset_name: CompSNARE
+raw_data_dir: /import/a12/users/aguljas/complexin/
+save_dir: /import/a12/users/aguljas/complexin/
+tag: ""
+pdb_fns: 
+- complexin_snare_cg.pdb
+cg_atoms:
+- N
+- CA
+- CB
+- C
+- O
+embedding_map: input_generator.CGEmbeddingMapFiveBead
+embedding_func: input_generator.embedding_fivebead
+skip_residues:
+- ACE
+- NME
+use_terminal_embeddings: false
+cg_mapping_strategy: slice_aggregate
+copies: 1

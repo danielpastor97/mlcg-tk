@@ -21,6 +21,7 @@ from .embedding_maps import all_residues
 class StandardBonds:
     nl_names = ["n_term_bonds", "bulk_bonds", "c_term_bonds", "bonds"]
     def __call__(
+        self,
         topology: md.Topology,
         separate_termini: bool=True,
         **kwargs
@@ -60,6 +61,7 @@ class StandardBonds:
 class StandardAngles:
     nl_names = ["n_term_angles", "bulk_angles", "c_term_angles", "angles"]
     def __call__(
+        self,
         topology: md.Topology,
         separate_termini: bool=True,
         **kwargs
@@ -99,6 +101,7 @@ class Non_Bonded:
     nl_names = ["n_term_nonbonded", "bulk_nonbonded", "c_term_nonbonded", "non_bonded"]
     allow_fit_from_values = True
     def __call__(
+        self,
         topology: md.Topology,
         bond_edges: Union[np.array, List, None]=None,
         angle_edges: Union[np.array, List, None]=None,
@@ -150,6 +153,7 @@ class Non_Bonded:
 class Phi:
     nl_names = [f"{res}_phi" for res in all_residues]
     def __call__(
+        self,
         topology: md.Topology,
         **kwargs
 ) -> Union[List[Tuple[str, int, torch.Tensor]], Tuple[str, int, torch.Tensor]]:
@@ -175,6 +179,7 @@ class Phi:
 class Psi:
     nl_names = [f"{res}_psi" for res in all_residues]
     def __call__(
+        self,
         topology: md.Topology,
         **kwargs
 ) -> Union[List[Tuple[str, int, torch.Tensor]], Tuple[str, int, torch.Tensor]]:
@@ -198,6 +203,7 @@ class Omega:
     nl_names = ["pro_omega", "non_pro_omega"]
     replace_gly_ca_stats = True
     def __call__(
+        self,
         topology: md.Topology,
         **kwargs
 ) -> List[Tuple[str, int, torch.Tensor]]:
@@ -229,6 +235,7 @@ class Omega:
 class Gamma1:
     nl_names = ["gamma_1"]
     def __call__(
+        self,
         topology: md.Topology,
         **kwargs
 ) -> Tuple[str, int, torch.Tensor]:
@@ -250,6 +257,7 @@ class Gamma1:
 class Gamma2:
     nl_names = ["gamma_2"]
     def __call__(
+        self,
         topology: md.Topology,
         **kwargs
 ) -> Tuple[str, int, torch.Tensor]:

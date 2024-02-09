@@ -34,7 +34,7 @@ class PriorBuilder:
         self.prior_cls = prior_cls
 
     def build_nl(self, topology, **kwargs):
-        return self.nl_builder(topology)
+        return self.nl_builder(topology=topology)
 
     def accumulate_statistics(self, nl_name: str, data: AtomicData):
         atom_types = data.atom_types
@@ -75,7 +75,7 @@ class Bonds(PriorBuilder):
 
     def build_nl(self, topology, **kwargs):
         return self.nl_builder(
-            topology,
+            topology=topology,
             separate_termini=self.separate_termini,
             n_term_atoms=self.n_term_atoms,
             c_term_atoms=self.c_term_atoms,
@@ -120,7 +120,7 @@ class Angles(PriorBuilder):
 
     def build_nl(self, topology, **kwargs):
         return self.nl_builder(
-            topology,
+            topology=topology,
             separate_termini=self.separate_termini,
             n_term_atoms=self.n_term_atoms,
             c_term_atoms=self.c_term_atoms,
@@ -172,7 +172,7 @@ class NonBonded(PriorBuilder):
         bond_edges = kwargs["bond_edges"]
         angle_edges = kwargs["angle_edges"]
         return self.nl_builder(
-            topology,
+            topology=topology,
             bond_edges=bond_edges,
             angle_edges=angle_edges,
             separate_termini=self.separate_termini,

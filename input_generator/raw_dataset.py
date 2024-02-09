@@ -155,7 +155,7 @@ class SampleCollection:
         cg_df.serial = [i + 1 for i in range(len(cg_df.index))]
         self.cg_dataframe = cg_df
 
-        cg_map = np.zeros((len(cg_atom_idx), self.aa_traj.n_atoms))
+        cg_map = np.zeros((len(cg_atom_idx), self.input_traj.n_atoms))
         cg_map[[i for i in range(len(cg_atom_idx))], cg_atom_idx] = 1
         if not all([sum(row) == 1 for row in cg_map]):
             warnings.warn("WARNING: Slice mapping matrix is not unique.")
@@ -270,7 +270,7 @@ class SampleCollection:
             return
 
         save_templ = os.path.join(save_dir, f"{self.tag}{self.name}")
-        cg_xyz = self.aa_traj.atom_slice(self.cg_atom_indices).xyz
+        cg_xyz = self.input_traj.atom_slice(self.cg_atom_indices).xyz
         cg_traj = md.Trajectory(cg_xyz, md.Topology.from_dataframe(self.cg_dataframe))
         cg_traj.save_pdb(f"{save_templ}_cg_structure.pdb")
 
@@ -359,7 +359,7 @@ class SampleCollection:
         prior_builders
 
         for prior_builder in prior_builders:
-            if getattr(prior_builder, "separate_termini", False):
+            if getattr(prior_builder, "separate_termini", True):
                 prior_builder = get_terminal_atoms(
                     prior_builder,
                     cg_dataframe=self.cg_dataframe,
@@ -368,7 +368,7 @@ class SampleCollection:
                 )
 
         # get atom groups for edges and orders for all prior terms
-        cg_top = self.aa_traj.atom_slice(self.cg_atom_indices).topology
+        cg_top = self.input_traj.atom_slice(self.cg_atom_indices).topology
 
         all_edges_and_orders = get_edges_and_orders(
             prior_builders,
@@ -441,6 +441,25 @@ class RawDataset:
             )
             self.dataset.append(data_samples)
 
+    def __getitem__(self, idx):
+        return self.dataset[idx]
+
+    def __len__(self):
+        return len(self.dataset)
+
+
+class SimInput:
+    def __init__(self, dataset_name: str, tag: str, pdb_fns: List[str]) -> None:
+        self.dataset_name = dataset_name
+        self.names = [fn[:-4] for fn in pdb_fns]
+        self.dataset = []
+
+        for name in self.names:
+            data_samples = SampleCollection(
+                name=name,
+                tag=tag,
+            )
+            self.dataset.append(data_samples)
     def __getitem__(self, idx):
         return self.dataset[idx]
 

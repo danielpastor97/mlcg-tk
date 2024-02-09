@@ -70,7 +70,7 @@ def process_raw_dataset(
     """
     dataset = RawDataset(dataset_name, names, tag)
     for samples in tqdm(dataset, f"Processing CG data for {dataset_name} dataset..."):
-        samples.aa_traj, samples.top_dataframe = sample_loader.get_traj_top(
+        samples.input_traj, samples.top_dataframe = sample_loader.get_traj_top(
             samples.name, pdb_template_fn
         )
 
@@ -151,7 +151,7 @@ def build_neighborlists(
     """
     dataset = RawDataset(dataset_name, names, tag)
     for samples in tqdm(dataset, f"Building NL for {dataset_name} dataset..."):
-        samples.aa_traj, samples.top_dataframe = sample_loader.get_traj_top(
+        samples.input_traj, samples.top_dataframe = sample_loader.get_traj_top(
             samples.name, pdb_template_fn
         )
 

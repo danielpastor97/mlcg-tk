@@ -177,3 +177,13 @@ class Trpcage_loader(DatasetLoader):
         aa_coords = np.concatenate(aa_coord_list)
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces
+
+class SimInput_loader(DatasetLoader):
+    def get_traj_top(self, name: str, raw_data_dir: str):
+        pdb = md.load(f"{raw_data_dir}{name}.pdb")
+        input_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.is_protein]
+        )
+        top_dataframe = input_traj.topology.to_dataframe()[0]
+        return input_traj, top_dataframe
+
