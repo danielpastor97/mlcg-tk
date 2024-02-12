@@ -169,7 +169,7 @@ class Trpcage_loader(DatasetLoader):
         for cfn, ffn in zip(coords_fns, forces_fns):
             force = np.load(ffn)
             coord = np.load(cfn)
-            coord = coord #* 10
+            coord = coord  # * 10
             force = force / 4.184  # convert to from kJ/mol/ang to kcal/mol/ang
             assert coord.shape == force.shape
             aa_coord_list.append(coord)
@@ -177,6 +177,7 @@ class Trpcage_loader(DatasetLoader):
         aa_coords = np.concatenate(aa_coord_list)
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces
+
 
 class SimInput_loader(DatasetLoader):
     def get_traj_top(self, name: str, raw_data_dir: str):
@@ -186,4 +187,3 @@ class SimInput_loader(DatasetLoader):
         )
         top_dataframe = input_traj.topology.to_dataframe()[0]
         return input_traj, top_dataframe
-

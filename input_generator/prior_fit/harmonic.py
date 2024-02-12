@@ -10,7 +10,7 @@ def harmonic(x, x0, k, V0=0):
 
 
 def fit_harmonic_from_potential_estimates(
-    bin_centers_nz: torch.Tensor, dG_nz: torch.Tensor
+    bin_centers_nz: torch.Tensor, dG_nz: torch.Tensor, **kwargs
 ) -> Dict:
     r"""Method for fitting interaction parameters from data
 

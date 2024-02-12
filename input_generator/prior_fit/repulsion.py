@@ -12,10 +12,7 @@ def repulsion(x, sigma):
 
 
 def fit_repulsion_from_potential_estimates(
-    bin_centers_nz: torch.Tensor,
-    dG_nz: torch.Tensor,
-    ncounts_nz: Optional[torch.Tensor],
-    percentile: Optional[float] = None,
+    bin_centers_nz: torch.Tensor, **kwargs
 ) -> Dict:
     """Method for fitting interaction parameters from data
 
@@ -52,10 +49,10 @@ def fit_repulsion_from_potential_estimates(
 
 def fit_repulsion_from_values(
     bin_centers_nz: torch.Tensor,
-    dG_nz: torch.Tensor,
     ncounts_nz: torch.Tensor,
     percentile: float = 1,
     cutoff: Optional[float] = None,
+    **kwargs
 ) -> Dict:
     """Method for fitting interaction parameters directly from input features
 
@@ -80,7 +77,7 @@ def fit_repulsion_from_values(
         Dictionary of interaction parameters as retrived through
         `scipy.optimize.curve_fit`
     """
-    values = np.repeat(bin_centers_nz.numpy(),ncounts_nz.numpy())
+    values = np.repeat(bin_centers_nz.numpy(), ncounts_nz.numpy())
     if cutoff != None:
         values = values[values < cutoff]
     sigma = torch.tensor(np.percentile(values, percentile))

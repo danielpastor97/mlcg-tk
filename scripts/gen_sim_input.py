@@ -24,6 +24,7 @@ from mlcg.data import AtomicData
 import torch
 from copy import deepcopy
 
+
 def process_sim_input(
     dataset_name: str,
     raw_data_dir: str,
@@ -77,7 +78,9 @@ def process_sim_input(
     dataset = SimInput(dataset_name, tag, pdb_fns)
     for samples in tqdm(dataset, f"Processing CG data for {dataset_name} dataset..."):
         sample_loader = SimInput_loader()
-        samples.input_traj, samples.top_dataframe = sample_loader.get_traj_top(name=samples.name, raw_data_dir=raw_data_dir)
+        samples.input_traj, samples.top_dataframe = sample_loader.get_traj_top(
+            name=samples.name, raw_data_dir=raw_data_dir
+        )
 
         samples.apply_cg_mapping(
             cg_atoms=cg_atoms,
@@ -95,10 +98,16 @@ def process_sim_input(
         cg_traj = samples.input_traj.atom_slice(samples.cg_atom_indices)
         cg_coords = cg_traj.xyz * 10
         cg_types = samples.cg_dataframe["type"].to_list()
-        cg_masses = np.array([int(atom.element.mass) for atom in cg_traj.topology.atoms]) / mass_scale
+        cg_masses = (
+            np.array([int(atom.element.mass) for atom in cg_traj.topology.atoms])
+            / mass_scale
+        )
 
         prior_nls = samples.get_prior_nls(
-            prior_builders=prior_builders, save_nls=False, save_dir=save_dir, prior_tag=prior_tag
+            prior_builders=prior_builders,
+            save_nls=False,
+            save_dir=save_dir,
+            prior_tag=prior_tag,
         )
 
         for i in range(copies):
@@ -121,7 +130,6 @@ def process_sim_input(
 
     torch.save(data_list, f"{save_dir}{dataset_name}_configurations.pt")
 
-        
 
 if __name__ == "__main__":
     print("Start gen_sim_input.py: {}".format(ctime()))

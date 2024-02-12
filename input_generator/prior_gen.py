@@ -1,9 +1,4 @@
-import torch
-import numpy as np
-
-from typing import Callable, Optional
-from collections import defaultdict
-from copy import deepcopy
+from typing import Callable
 
 from mlcg.nn.prior import (
     HarmonicBonds,
@@ -17,7 +12,7 @@ from mlcg.nn.prior import (
 from mlcg.nn.gradients import GradientsOut
 
 from mlcg.data import AtomicData
-from .prior_fit.histogram import compute_hist, HistogramsNL
+from .prior_fit.histogram import HistogramsNL
 
 
 class PriorBuilder:
@@ -42,6 +37,7 @@ class PriorBuilder:
         values = self.prior_cls.compute_features(data.pos, mapping)
 
         self.histograms.accumulate_statistics(nl_name, values, atom_types, mapping)
+
 
 class Bonds(PriorBuilder):
     def __init__(
@@ -82,11 +78,10 @@ class Bonds(PriorBuilder):
             n_atoms=self.n_atoms,
             c_atoms=self.c_atoms,
         )
-    
+
     def get_prior_model(self, statistics, targets="forces", **kwargs):
-        return GradientsOut(
-            self.prior_cls(statistics), targets="forces"
-        )
+        return GradientsOut(self.prior_cls(statistics), targets="forces")
+
 
 class Angles(PriorBuilder):
     def __init__(
@@ -127,11 +122,9 @@ class Angles(PriorBuilder):
             n_atoms=self.n_atoms,
             c_atoms=self.c_atoms,
         )
-    
+
     def get_prior_model(self, statistics, targets="forces", **kwargs):
-        return GradientsOut(
-            self.prior_cls(statistics), targets="forces"
-        )
+        return GradientsOut(self.prior_cls(statistics), targets="forces")
 
 
 class NonBonded(PriorBuilder):
@@ -183,11 +176,9 @@ class NonBonded(PriorBuilder):
             n_atoms=self.n_atoms,
             c_atoms=self.c_atoms,
         )
-    
+
     def get_prior_model(self, statistics, targets="forces", **kwargs):
-        return GradientsOut(
-            self.prior_cls(statistics), targets="forces"
-        )
+        return GradientsOut(self.prior_cls(statistics), targets="forces")
 
 
 class Dihedrals(PriorBuilder):

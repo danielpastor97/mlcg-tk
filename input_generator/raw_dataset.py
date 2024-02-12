@@ -460,6 +460,7 @@ class SimInput:
                 tag=tag,
             )
             self.dataset.append(data_samples)
+
     def __getitem__(self, idx):
         return self.dataset[idx]
 

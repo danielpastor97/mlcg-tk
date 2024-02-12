@@ -99,7 +99,7 @@ def process_raw_dataset(
 
 
 def build_neighborlists(
-        dataset_name: str,
+    dataset_name: str,
     names: List[str],
     sample_loader: DatasetLoader,
     raw_data_dir: str,
@@ -171,6 +171,7 @@ def build_neighborlists(
         prior_nls = samples.get_prior_nls(
             prior_builders, save_nls=True, save_dir=save_dir, prior_tag=prior_tag
         )
+
 
 if __name__ == "__main__":
     print("Start gen_input_data.py: {}".format(ctime()))

@@ -5,11 +5,8 @@ SCRIPT_DIR = osp.abspath(osp.dirname(__file__))
 sys.path.insert(0, osp.join(SCRIPT_DIR, "../"))
 
 from input_generator.raw_dataset import RawDataset
-from input_generator.raw_data_loader import DatasetLoader
-from input_generator.embedding_maps import (
-    CGEmbeddingMap,
-)
-from input_generator.prior_gen import Bonds, PriorBuilder
+from input_generator.embedding_maps import CGEmbeddingMap
+from input_generator.prior_gen import PriorBuilder
 from input_generator.prior_fit import HistogramsNL
 from input_generator.prior_fit.fit_potentials import fit_potentials
 from tqdm import tqdm
@@ -21,6 +18,7 @@ from typing import Dict, List, Union, Callable, Optional
 from jsonargparse import CLI
 from scipy.integrate import trapezoid
 from collections import defaultdict
+
 # import seaborn as sns
 
 
@@ -42,9 +40,9 @@ def compute_statistics(
     prior_builders: List[PriorBuilder],
     embedding_map: CGEmbeddingMap,
     device: str = "cpu",
-    save_figs:bool=True,
+    save_figs: bool = True,
 ):
-    fnout = osp.join(save_dir,f'{prior_tag}_prior_builders.pck')
+    fnout = osp.join(save_dir, f"{prior_tag}_prior_builders.pck")
 
     all_nl_names = set()
     nl_name2prior_builder = {}
@@ -72,16 +70,19 @@ def compute_statistics(
                 prior_builder = nl_name2prior_builder[nl_name]
                 prior_builder.accumulate_statistics(nl_name, batch)
 
-    key_map = {v:k for k,v in embedding_map.items()}
+    key_map = {v: k for k, v in embedding_map.items()}
     if save_figs:
         for prior_builder in prior_builders:
             figs = prior_builder.histograms.plot_histograms(key_map)
-            for (tag, fig) in figs:
-                makedirs(osp.join(save_dir,f'{prior_tag}_plots'))
-                fig.savefig(osp.join(save_dir,f'{prior_tag}_plots', f'hist_{tag}.png'),
-                dpi=300, bbox_inches='tight')
+            for tag, fig in figs:
+                makedirs(osp.join(save_dir, f"{prior_tag}_plots"))
+                fig.savefig(
+                    osp.join(save_dir, f"{prior_tag}_plots", f"hist_{tag}.png"),
+                    dpi=300,
+                    bbox_inches="tight",
+                )
 
-    with open(fnout, 'wb') as f:
+    with open(fnout, "wb") as f:
         pck.dump(prior_builders, f)
 
 
@@ -96,13 +97,13 @@ def fit_priors(
     prior_builders: List[PriorBuilder],
     embedding_map: CGEmbeddingMap,
     device: str = "cpu",
-    save_figs:bool=True,
-    temperature:float=300,
-    percentile:float=1,
-    cutoff:Optional[float]=None,
-): 
-    prior_fn = osp.join(save_dir,f'{prior_tag}_prior_builders.pck')
-    fnout = osp.join(save_dir,f'{prior_tag}_prior_model.pt')
+    save_figs: bool = True,
+    temperature: float = 300,
+    percentile: float = 1,
+    cutoff: Optional[float] = None,
+):
+    prior_fn = osp.join(save_dir, f"{prior_tag}_prior_builders.pck")
+    fnout = osp.join(save_dir, f"{prior_tag}_prior_model.pt")
 
     with open(prior_fn, "rb") as f:
         prior_builders = pck.load(f)
@@ -124,7 +125,7 @@ def fit_priors(
             embedding_map=embedding_map,
             temperature=temperature,
             percentile=percentile,
-            cutoff=cutoff
+            cutoff=cutoff,
         )
         prior_models[nl_name] = prior_model
 

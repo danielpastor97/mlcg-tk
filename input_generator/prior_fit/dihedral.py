@@ -155,6 +155,7 @@ def fit_dihedral_from_potential_estimates(
     constrain_deg: Optional[int] = None,
     regression_method: str = "linear",
     metric: str = "aic",
+    **kwargs,
 ) -> Dict:
     """
     Loop over n_degs basins and use either the AIC criterion
