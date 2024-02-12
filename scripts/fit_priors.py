@@ -21,12 +21,8 @@ from collections import defaultdict
 
 # import seaborn as sns
 
-
-from mlcg.data.atomic_data import AtomicData
-from mlcg.nn.prior import Harmonic, _Prior
-from mlcg.nn.gradients import GradientsOut, SumOut
-from mlcg.geometry._symmetrize import _symmetrise_map, _flip_map
-from mlcg.utils import tensor2tuple, makedirs
+from mlcg.nn.gradients import SumOut
+from mlcg.utils import makedirs
 
 
 def compute_statistics(
@@ -87,20 +83,10 @@ def compute_statistics(
 
 
 def fit_priors(
-    dataset_name: str,
-    names: List[str],
-    tag: str,
     save_dir: str,
-    stride: int,
-    batch_size: int,
     prior_tag: str,
-    prior_builders: List[PriorBuilder],
     embedding_map: CGEmbeddingMap,
-    device: str = "cpu",
-    save_figs: bool = True,
     temperature: float = 300,
-    percentile: float = 1,
-    cutoff: Optional[float] = None,
 ):
     prior_fn = osp.join(save_dir, f"{prior_tag}_prior_builders.pck")
     fnout = osp.join(save_dir, f"{prior_tag}_prior_model.pt")
@@ -112,8 +98,6 @@ def fit_priors(
     nl_name2prior_builder = {}
     for prior_builder in prior_builders:
         for nl_name in list(prior_builder.histograms.data.keys()):
-            if nl_name == "non_bonded":
-                continue
             nl_names.append(nl_name)
             nl_name2prior_builder[nl_name] = prior_builder
     prior_models = {}
@@ -124,8 +108,6 @@ def fit_priors(
             prior_builder=prior_builder,
             embedding_map=embedding_map,
             temperature=temperature,
-            percentile=percentile,
-            cutoff=cutoff,
         )
         prior_models[nl_name] = prior_model
 

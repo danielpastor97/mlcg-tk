@@ -12,8 +12,6 @@ def fit_potentials(
     prior_builder: PriorBuilder,
     embedding_map: Optional[CGEmbeddingMap],
     temperature: float = 300.0,
-    percentile: float = 1,
-    cutoff: Optional[float] = None,
 ):
     histograms = prior_builder.histograms[nl_name]
     bin_centers = prior_builder.histograms.bin_centers

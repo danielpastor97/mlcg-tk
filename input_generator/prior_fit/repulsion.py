@@ -50,7 +50,7 @@ def fit_repulsion_from_potential_estimates(
 def fit_repulsion_from_values(
     bin_centers_nz: torch.Tensor,
     ncounts_nz: torch.Tensor,
-    percentile: float = 1,
+    percentile: float,
     cutoff: Optional[float] = None,
     **kwargs
 ) -> Dict:

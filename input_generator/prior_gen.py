@@ -1,4 +1,5 @@
-from typing import Callable
+from typing import Callable, Optional
+from functools import partial
 
 from mlcg.nn.prior import (
     HarmonicBonds,
@@ -139,7 +140,10 @@ class NonBonded(PriorBuilder):
         bmin: float,
         bmax: float,
         prior_fit_fn: Callable,
+        percentile: float = 1,
+        cutoff: Optional[float] = None,
     ) -> None:
+        prior_fit_fn = partial(prior_fit_fn, percentile=percentile, cutoff=cutoff)
         super().__init__(
             histograms=HistogramsNL(
                 n_bins=n_bins,
