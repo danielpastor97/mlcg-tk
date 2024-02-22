@@ -53,7 +53,7 @@ def fit_potentials(
         )
 
     prior_model = prior_builder.get_prior_model(
-        statistics, targets="forces", **target_fit_kwargs
+        statistics, nl_name, targets="forces", **target_fit_kwargs
     )
 
     return prior_model

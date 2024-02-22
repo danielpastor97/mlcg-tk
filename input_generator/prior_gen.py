@@ -36,7 +36,6 @@ class PriorBuilder:
         atom_types = data.atom_types
         mapping = data.neighbor_list[nl_name]["index_mapping"]
         values = self.prior_cls.compute_features(data.pos, mapping)
-
         self.histograms.accumulate_statistics(nl_name, values, atom_types, mapping)
 
 
@@ -59,7 +58,7 @@ class Bonds(PriorBuilder):
             ),
             nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
-            prior_cls=HarmonicBonds,
+            prior_cls=GeneralBonds,
         )
         self.name = name
         self.type = "bonds"
@@ -80,8 +79,8 @@ class Bonds(PriorBuilder):
             c_atoms=self.c_atoms,
         )
 
-    def get_prior_model(self, statistics, targets="forces", **kwargs):
-        return GradientsOut(self.prior_cls(statistics), targets="forces")
+    def get_prior_model(self, statistics, name, targets="forces", **kwargs):
+        return GradientsOut(self.prior_cls(statistics, name=name), targets="forces")
 
 
 class Angles(PriorBuilder):
@@ -103,7 +102,7 @@ class Angles(PriorBuilder):
             ),
             nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
-            prior_cls=HarmonicAngles,
+            prior_cls=GeneralAngles,
         )
         self.name = name
         self.type = "angles"
@@ -124,8 +123,8 @@ class Angles(PriorBuilder):
             c_atoms=self.c_atoms,
         )
 
-    def get_prior_model(self, statistics, targets="forces", **kwargs):
-        return GradientsOut(self.prior_cls(statistics), targets="forces")
+    def get_prior_model(self, statistics, name, targets="forces", **kwargs):
+        return GradientsOut(self.prior_cls(statistics, name=name), targets="forces")
 
 
 class NonBonded(PriorBuilder):
@@ -181,8 +180,11 @@ class NonBonded(PriorBuilder):
             c_atoms=self.c_atoms,
         )
 
-    def get_prior_model(self, statistics, targets="forces", **kwargs):
-        return GradientsOut(self.prior_cls(statistics), targets="forces")
+    def get_prior_model(self, statistics, name, targets="forces", **kwargs):
+        prior = self.prior_cls(statistics)
+        prior.name = name
+        return GradientsOut(prior, targets="forces")
+        # return GradientsOut(self.prior_cls(statistics), targets="forces")
 
 
 class Dihedrals(PriorBuilder):
@@ -208,7 +210,10 @@ class Dihedrals(PriorBuilder):
         self.name = name
         self.type = "dihedrals"
 
-    def get_prior_model(self, statistics, targets="forces", **kwargs):
-        return GradientsOut(
-            self.prior_cls(statistics, n_degs=kwargs["n_degs"]), targets="forces"
-        )
+    def get_prior_model(self, statistics, name, targets="forces", **kwargs):
+        prior = self.prior_cls(statistics, n_degs=kwargs["n_degs"])
+        prior.name = name
+        return GradientsOut(prior, targets="forces")
+        # return GradientsOut(
+        #     self.prior_cls(statistics, n_degs=kwargs["n_degs"]), targets="forces"
+        # )

@@ -77,7 +77,7 @@ def fit_repulsion_from_values(
         Dictionary of interaction parameters as retrived through
         `scipy.optimize.curve_fit`
     """
-    values = np.repeat(bin_centers_nz.numpy(), ncounts_nz.numpy())
+    values = np.repeat(bin_centers_nz.numpy(), ncounts_nz.int().numpy())
     if cutoff != None:
         values = values[values < cutoff]
     sigma = torch.tensor(np.percentile(values, percentile))
