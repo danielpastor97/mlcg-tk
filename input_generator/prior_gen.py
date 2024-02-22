@@ -184,7 +184,6 @@ class NonBonded(PriorBuilder):
         prior = self.prior_cls(statistics)
         prior.name = name
         return GradientsOut(prior, targets="forces")
-        # return GradientsOut(self.prior_cls(statistics), targets="forces")
 
 
 class Dihedrals(PriorBuilder):
@@ -214,6 +213,3 @@ class Dihedrals(PriorBuilder):
         prior = self.prior_cls(statistics, n_degs=kwargs["n_degs"])
         prior.name = name
         return GradientsOut(prior, targets="forces")
-        # return GradientsOut(
-        #     self.prior_cls(statistics, n_degs=kwargs["n_degs"]), targets="forces"
-        # )
