@@ -13,7 +13,9 @@ Command:
 
 `python ../scripts/gen_input_data.py build_neighborlists --config trpcage.yaml --config trpcage_priors.yaml`
 
-`python ../scripts/fit_priors.py compute_statistics --config trpcage_fit.yaml --config trpcage_priors.yaml`
+`python ../scripts/fit_priors.py compute_statistics --config trpcage_stats.yaml --config trpcage_priors.yaml`
+
+`python ../scripts/fit_priors.py fit_priors --config trpcage_fit.yaml`
 
 This procedure will loop over all of the datasets provided in the `--data_dict` and the corresponding sample names in `--names` (both arguments accept multiple input files). For each instance, it will load the atomistic coordinates, forces, and structures and map these to a lower resolution specified in the input file (this allows for various resolutions and CG embeddings to be used). Then, using the keys of the `--prior_dict`, the script will generate a neighbourlist for each molecule, so long as the prior terms and their corresponding functions specified in the input file are defined in `prior_terms.py`.
 
@@ -21,7 +23,7 @@ This procedure will loop over all of the datasets provided in the `--data_dict` 
 
 Command:
 
-`python produce_delta_forces.py --data_dict cath_data_dict.yaml --names cath_names.yaml --prior_model /import/a12/users/aguljas/mlcg_base_cg_data/test_pipeline/priors/full_prior_model_cgschnet.pt`
+`python ../scripts/produce_delta_forces.py produce_delta_forces --config trpcage_produce.yaml`
 
 This procedure will load the prior model specified by `--prior_model` and then once again loop over all datasets and sample names provided. It will then calculate and remove the baseline forces using the coordinates, forces, embeddings, and neighbourlists created in the previous step. It will then save the delta forces which can then be used for training.
 
@@ -36,14 +38,14 @@ The following example script shows how delta forces can be computed on a computi
 #SBATCH --time=4-00:00:00
 #SBATCH --gres=gpu:A5000:1
 #SBATCH --partition=gpu
-#SBATCH --output=cath_delta_forces_gpu.log
-#SBATCH --job-name=cath_delta_forces_gpu
+#SBATCH --output=trpcage_delta_forces_gpu.log
+#SBATCH --job-name=trpcage_delta_forces_gpu
 
 source /scratch/aguljas/miniconda3/bin/activate
 conda activate mlcg_opeps-dataset
 
-python produce_delta_forces_gpu.py --data_dict cath_ext_data_dict.yaml --names cath_ext_names.yaml --prior_model full_prior_model_cgschnet.pt --device cuda
+python ../scripts/produce_delta_forces.py produce_delta_forces --config trpcage_produce.yaml
 ```
 
-Note that depending on the machine being used and its available memory, it may be necessary to adjust the `batch_size` option in `data_dict.yaml`.
+Note that depending on the machine being used and its available memory, it may be necessary to adjust the `batch_size` option in `trpcage_produce.yaml`.
 

@@ -4,7 +4,7 @@ prior_builders:
     init_args:
       name: bonds
       separate_termini: true
-      nl_builder_fn: input_generator.standard_bonds
+      nl_builder: input_generator.StandardBonds
       prior_fit_fn: input_generator.fit_harmonic_from_potential_estimates
       n_bins: 100
       bmin: 0
@@ -13,7 +13,7 @@ prior_builders:
     init_args:
       name: angles
       separate_termini: true
-      nl_builder_fn: input_generator.standard_angles
+      nl_builder: input_generator.StandardAngles
       prior_fit_fn: input_generator.fit_harmonic_from_potential_estimates
       n_bins: 500
       bmin: -3.14
@@ -24,7 +24,7 @@ prior_builders:
       min_pair: 6
       res_exclusion: 1
       separate_termini: false
-      nl_builder_fn: input_generator.non_bonded
+      nl_builder: input_generator.Non_Bonded
       prior_fit_fn: input_generator.fit_repulsion_from_values
       n_bins: 500
       bmin: 0
@@ -32,7 +32,7 @@ prior_builders:
   - class_path: input_generator.Dihedrals
     init_args:
       name: phi
-      nl_builder_fn: input_generator.phi
+      nl_builder: input_generator.Phi
       prior_fit_fn: input_generator.fit_dihedral_from_potential_estimates
       n_bins: 100
       bmin: -3.14
@@ -40,7 +40,7 @@ prior_builders:
   - class_path: input_generator.Dihedrals
     init_args:
       name: psi
-      nl_builder_fn: input_generator.psi
+      nl_builder: input_generator.Psi
       prior_fit_fn: input_generator.fit_dihedral_from_potential_estimates
       n_bins: 100
       bmin: -3.14
@@ -48,7 +48,7 @@ prior_builders:
   - class_path: input_generator.Dihedrals
     init_args:
       name: omega
-      nl_builder_fn: input_generator.omega
+      nl_builder: input_generator.Omega
       prior_fit_fn: input_generator.fit_dihedral_from_potential_estimates
       n_bins: 100
       bmin: -3.14
@@ -56,7 +56,7 @@ prior_builders:
   - class_path: input_generator.Dihedrals
     init_args:
       name: gamma_1
-      nl_builder_fn: input_generator.gamma_1
+      nl_builder: input_generator.Gamma1
       prior_fit_fn: input_generator.fit_dihedral_from_potential_estimates
       n_bins: 100
       bmin: -3.14
@@ -64,7 +64,7 @@ prior_builders:
   - class_path: input_generator.Dihedrals
     init_args:
       name: gamma_2
-      nl_builder_fn: input_generator.gamma_2
+      nl_builder: input_generator.Gamma2
       prior_fit_fn: input_generator.fit_dihedral_from_potential_estimates
       n_bins: 100
       bmin: -3.14
