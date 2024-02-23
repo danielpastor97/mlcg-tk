@@ -215,7 +215,7 @@ def get_edges_and_orders(
     Parameters
     ----------
     prior_builders:
-        .
+        List of PriorBuilder's to use for defining neighbour lists
     topology:
         MDTraj topology object from which atom groups defining each prior term will be created.
     cg_dataframe:

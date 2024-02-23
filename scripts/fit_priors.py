@@ -38,6 +38,34 @@ def compute_statistics(
     device: str = "cpu",
     save_figs: bool = True,
 ):
+    """
+    Computes structural features and accumulates statistics on dataset samples
+
+    Parameters
+    ----------
+    dataset_name : str
+        Name given to specific dataset
+    names : List[str]
+        List of sample names
+    tag : str
+        Label given to all output files produced from dataset
+    save_dir : str
+        Path to directory from which input will be loaded and to which output will be saved
+    stride: int
+        Integer by which to stride frames
+    batch_size : int
+        Number of frames to take per batch
+    prior_tag : str
+        String identifying the specific combination of prior terms
+    prior_builders : List[PriorBuilder]
+        List of PriorBuilder objects and their corresponding parameters
+    embedding_map : CGEmbeddingMap
+        Mapping object
+    device: str
+        Device on which to run delta force calculations
+    save_figs: bool
+        Whether to plot histograms of computed statistics
+    """
     fnout = osp.join(save_dir, f"{prior_tag}_prior_builders.pck")
 
     all_nl_names = set()
@@ -88,6 +116,20 @@ def fit_priors(
     embedding_map: CGEmbeddingMap,
     temperature: float = 300,
 ):
+    """
+    Fits potential energy estimates to computed statistics
+
+    Parameters
+    ----------
+    save_dir : str
+        Path to directory from which input will be loaded and to which output will be saved
+    prior_tag : str
+        String identifying the specific combination of prior terms
+    embedding_map : CGEmbeddingMap
+        Mapping object
+    temperature : float
+        Temperature from which beta value will be computed
+    """
     prior_fn = osp.join(save_dir, f"{prior_tag}_prior_builders.pck")
     fnout = osp.join(save_dir, f"{prior_tag}_prior_model.pt")
 
