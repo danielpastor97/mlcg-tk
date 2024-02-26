@@ -65,22 +65,24 @@ def produce_delta_forces(
         for i in range(0, num_frames, batch_size):
             sub_data_list = []
             for j in range(batch_size):
-                data = AtomicData.from_points(
-                    pos=torch.tensor(coords[i + j]),
-                    forces=torch.tensor(forces[i + j]),
-                    atom_types=torch.tensor(embeds),
-                    masses=None,
-                    neighborlist=prior_nls,
-                )
-                sub_data_list.append(data.to(device))
+                if i + j < len(coords):
+                    data = AtomicData.from_points(
+                        pos=torch.tensor(coords[i + j]),
+                        forces=torch.tensor(forces[i + j]),
+                        atom_types=torch.tensor(embeds),
+                        masses=None,
+                        neighborlist=prior_nls,
+                    )
+                    sub_data_list.append(data.to(device))
             sub_data_list = tuple(sub_data_list)
             _ = remove_baseline_forces(
                 sub_data_list,
                 prior_model,
             )
             for j in range(batch_size):
-                delta_force = sub_data_list[j].forces.detach().cpu()
-                delta_forces.append(delta_force.numpy())
+                if j < len(sub_data_list):
+                    delta_force = sub_data_list[j].forces.detach().cpu()
+                    delta_forces.append(delta_force.numpy())
 
         np.save(
             os.path.join(save_dir, f"{tag}{samples.name}_{prior_tag}_delta_forces.npy"),
