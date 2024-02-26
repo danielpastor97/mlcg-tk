@@ -34,39 +34,44 @@ def process_raw_dataset(
     use_terminal_embeddings: bool,
     cg_mapping_strategy: str,
 ):
-    """_summary_
+    """
+    Applies coarse-grained mapping to coordinates and forces using input sample
+    topology and specified mapping strategies
 
     Parameters
     ----------
     dataset_name : str
-        _description_
+        Name given to specific dataset
     names : List[str]
-        _description_
-    sample_loader : Callable
-        _description_
+        List of sample names
+    sample_loader : DatasetLoader
+        Loader object defined for specific dataset
     raw_data_dir : str
-        _description_
+        Path to coordinate and force files
     tag : str
-        _description_
+        Label given to all output files produced from dataset
     pdb_template_fn : str
-        _description_
+        Template file location of atomistic structure to be used for topology
     save_dir : str
-        _description_
+        Path to directory in which output will be saved
     cg_atoms : List[str]
-        _description_
+        List of atom names to preserve in coarse-grained resolution
     embedding_map : CGEmbeddingMap
-        _description_
+        Mapping object
     embedding_func : Callable
-        _description_
+        Function which will be used to apply CG mapping
     skip_residues : List[str]
-        _description_
+        List of residues to skip, can be None
     use_terminal_embeddings : bool
-        _description_
+        Whether separate embedding types should be assigned to terminal atoms
     cg_mapping_strategy : str
-        _description_
+        Strategy to use for coordinate and force mappings; 
+        currently only "slice_aggregate" and "slice_optimize" are implemented
     prior_tag : str
-        _description_
+        String identifying the specific combination of prior terms
     prior_builders : List[PriorBuilder]
+        List of PriorBuilder objects and their corresponding parameters
+
     """
     dataset = RawDataset(dataset_name, names, tag)
     for samples in tqdm(dataset, f"Processing CG data for {dataset_name} dataset..."):
@@ -102,7 +107,6 @@ def build_neighborlists(
     dataset_name: str,
     names: List[str],
     sample_loader: DatasetLoader,
-    raw_data_dir: str,
     tag: str,
     pdb_template_fn: str,
     save_dir: str,
@@ -111,43 +115,40 @@ def build_neighborlists(
     embedding_func: Callable,
     skip_residues: List[str],
     use_terminal_embeddings: bool,
-    cg_mapping_strategy: str,
     prior_tag: str,
     prior_builders: List[PriorBuilder],
 ):
-    """_summary_
+    """
+    Generates neighbour lists for all samples in dataset using prior term information
 
     Parameters
     ----------
     dataset_name : str
-        _description_
+        Name given to specific dataset
     names : List[str]
-        _description_
-    sample_loader : Callable
-        _description_
-    raw_data_dir : str
-        _description_
+        List of sample names
+    sample_loader : DatasetLoader
+        Loader object defined for specific dataset
     tag : str
-        _description_
+        Label given to all output files produced from dataset
     pdb_template_fn : str
-        _description_
+        Template file location of atomistic structure to be used for topology
     save_dir : str
-        _description_
+        Path to directory in which output will be saved
     cg_atoms : List[str]
-        _description_
+        List of atom names to preserve in coarse-grained resolution
     embedding_map : CGEmbeddingMap
-        _description_
+        Mapping object
     embedding_func : Callable
-        _description_
+        Function which will be used to apply CG mapping
     skip_residues : List[str]
-        _description_
+        List of residues to skip, can be None
     use_terminal_embeddings : bool
-        _description_
-    cg_mapping_strategy : str
-        _description_
+        Whether separate embedding types should be assigned to terminal atoms
     prior_tag : str
-        _description_
+        String identifying the specific combination of prior terms
     prior_builders : List[PriorBuilder]
+        List of PriorBuilder objects and their corresponding parameters
     """
     dataset = RawDataset(dataset_name, names, tag)
     for samples in tqdm(dataset, f"Building NL for {dataset_name} dataset..."):

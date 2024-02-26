@@ -36,39 +36,39 @@ def process_sim_input(
     embedding_func: Callable,
     skip_residues: List[str],
     use_terminal_embeddings: bool,
-    cg_mapping_strategy: str,
     copies: int,
     prior_tag: str,
     prior_builders: List[PriorBuilder],
     mass_scale: Optional[float] = 418.4,
-    save_specific_prior: bool = False,
 ):
-    """_summary_
+    """
+    Generates input AtomicData objects for coarse-grained simulations
 
     Parameters
     ----------
     dataset_name : str
-        _description_
+        Name given to specific dataset
     raw_data_dir : str
-        _description_
+        Path to location of input structures
     pdb_fns : str
-        _description_
+        List of pdb filenames from which input will be generated
     save_dir : str
-        _description_
+        Path to directory in which output will be saved
     tag : str
-        _description_
+        Label given to all output files produced from dataset
     cg_atoms : List[str]
-        _description_
+        List of atom names to preserve in coarse-grained resolution
     embedding_map : CGEmbeddingMap
-        _description_
+        Mapping object
     embedding_func : Callable
-        _description_
+        Function which will be used to apply CG mapping
     skip_residues : List[str]
-        _description_
+        List of residues to skip, can be None
     use_terminal_embeddings : bool
-        _description_
+        Whether separate embedding types should be assigned to terminal atoms
     cg_mapping_strategy : str
-        _description_
+        Strategy to use for coordinate and force mappings; 
+        currently only "slice_aggregate" and "slice_optimize" are implemented
     """
     cg_coord_list = []
     cg_type_list = []

@@ -31,24 +31,28 @@ def produce_delta_forces(
     device: str,
     batch_size: int,
 ):
-    """_summary_
+    """
+    Removes prior energy terms from input forces to produce delta force input
+    for training
 
     Parameters
     ----------
     dataset_name : str
-        _description_
+        Name given to specific dataset
     names : List[str]
-        _description_
+        List of sample names
     tag : str
-        _description_
+        Label given to all output files produced from dataset
     save_dir : str
-        _description_
+        Path to directory from which input will be loaded and to which output will be saved
     prior_tag : str
-        _description_
+        String identifying the specific combination of prior terms
     prior_fn : str
-        _description_
+        Path to filename in which prior model is saved
+    device: str
+        Device on which to run delta force calculations
     batch_size : int
-        _description_
+        Number of frames to take per batch
     """
 
     prior_model = torch.load(open(prior_fn, "rb")).models.to(device)

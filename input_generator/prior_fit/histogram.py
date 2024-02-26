@@ -16,12 +16,29 @@ plt.rcParams["figure.max_open_warning"] = 50
 
 
 class HistogramsNL:
+    """
+    Accumulates and stores statistics for a given feature associated with 
+    specific atom groups (from defined neighbour lists).
+
+    Attributes
+    ----------
+    nbins:
+        The number of bins over which 1-D feature histograms are constructed
+        in order to estimate distributions
+    bmin:
+        Lower bound of bin edges
+    bmax:
+        Upper bound of bin edges
+    """
     def __init__(
         self,
         n_bins: int,
         bmin: float,
         bmax: float,
     ) -> None:
+        """
+        Bin centers are set automatically from n_bins, bmin, and bmax.
+        """
         self.n_bins = n_bins
         self.bmin = bmin
         self.bmax = bmax
@@ -30,7 +47,27 @@ class HistogramsNL:
             lambda: defaultdict(lambda: np.zeros(n_bins, dtype=np.float64))
         )
 
-    def accumulate_statistics(self, nl_name: str, values, atom_types, mapping):
+    def accumulate_statistics(
+            self,
+            nl_name: str,
+            values: torch.Tensor,
+            atom_types: torch.Tensor,
+            mapping: torch.Tensor
+    ) -> None:
+        """
+        Accumulates statistics from computed features.
+
+        Parameters
+        ----------
+        nl_name:
+            Neighbour list tag 
+        values:
+            Tensor of computed values to be binned
+        atom_types:
+            Tensor of embedding types associated with CG beads
+        mapping:
+            Tensor of atom groups for which values have been computed
+        """
         hists = compute_hist(
             values, atom_types, mapping, self.n_bins, self.bmin, self.bmax
         )
@@ -38,9 +75,15 @@ class HistogramsNL:
             self.data[nl_name][k] += hist
 
     def __getitem__(self, nl_name: str):
+        """
+        Returns histograms associated with neighbour list label
+        """
         return deepcopy(self.data[nl_name])
 
     def plot_histograms(self, key_map=None):
+        """
+        Plots distributions of binned features for data
+        """
         figs = []
         for nl_name, hists in self.data.items():
             fig = plt.figure(figsize=(10, 6))

@@ -12,7 +12,21 @@ class DatasetLoader:
 
 
 class CATH_loader(DatasetLoader):
+    """
+    Loader object for original 50 CATH domain proteins
+    """
     def get_traj_top(self, name: str, pdb_fn: str):
+        """
+        For a given CATH domain name, returns a loaded MDTraj object at the input resolution 
+        (generally atomistic) as well as the dataframe associated with its topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        pdb_fn:
+            Path to pdb structure file
+        """
         pdb = md.load(pdb_fn.format(name))
         aa_traj = pdb.atom_slice(
             [a.index for a in pdb.topology.atoms if a.residue.is_protein]
@@ -23,6 +37,17 @@ class CATH_loader(DatasetLoader):
     def load_coords_forces(
         self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        For a given CATH domain name, returns np.ndarray's of its coordinates and forces at 
+        the input resolution (generally atomistic)
+
+        Parameters
+        ----------
+        base_dir:
+            Path to coordinate and force files
+        name:
+            Name of input sample
+        """
         # return sorted(name, key=alphanum_key)
         outputs_fns = natsorted(glob(os.path.join(base_dir, f"output/{name}/*_part_*")))
         aa_coord_list = []
@@ -43,7 +68,21 @@ class CATH_loader(DatasetLoader):
 
 
 class CATH_ext_loader(DatasetLoader):
+    """
+    Loader object for extended dataset of CATH domain proteins
+    """
     def get_traj_top(self, name: str, pdb_fn: str):
+        """
+        For a given CATH domain name, returns a loaded MDTraj object at the input resolution 
+        (generally atomistic) as well as the dataframe associated with its topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        pdb_fn:
+            Path to pdb structure file
+        """
         pdb_fns = glob(pdb_fn.format(name))
         pdb = md.load(pdb_fns[0])
         aa_traj = pdb.atom_slice(
@@ -55,6 +94,17 @@ class CATH_ext_loader(DatasetLoader):
     def load_coords_forces(
         self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        For a given CATH domain name, returns np.ndarray's of its coordinates and forces at 
+        the input resolution (generally atomistic)
+
+        Parameters
+        ----------
+        base_dir:
+            Path to coordinate and force files
+        name:
+            Name of input sample
+        """
         traj_dirs = glob(os.path.join(base_dir, f"group_*/{name}_*/"))
         all_coords = []
         all_forces = []
@@ -86,7 +136,21 @@ class CATH_ext_loader(DatasetLoader):
 
 
 class DIMER_loader(DatasetLoader):
+    """
+    Loader object for original dataset of mono- and dipeptide pairwise umbrella sampling simulations
+    """
     def get_traj_top(self, name: str, pdb_fn: str):
+        """
+        For a given DIMER pair name, returns a loaded MDTraj object at the input resolution 
+        (generally atomistic) as well as the dataframe associated with its topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        pdb_fn:
+            Path to pdb structure file
+        """
         pdb = md.load(pdb_fn.format(name))
         aa_traj = pdb.atom_slice(
             [a.index for a in pdb.topology.atoms if a.residue.is_protein]
@@ -97,6 +161,17 @@ class DIMER_loader(DatasetLoader):
     def load_coords_forces(
         self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        For a given DIMER pair name, returns np.ndarray's of its coordinates and forces at 
+        the input resolution (generally atomistic)
+
+        Parameters
+        ----------
+        base_dir:
+            Path to coordinate and force files
+        name:
+            Name of input sample
+        """
         with h5py.File(os.path.join(base_dir, "allatom.h5"), "r") as data:
             coord = data["MINI"][name]["aa_coords"][:]
             force = data["MINI"][name]["aa_forces"][:]
@@ -110,7 +185,21 @@ class DIMER_loader(DatasetLoader):
 
 
 class DIMER_ext_loader(DatasetLoader):
+    """
+    Loader object for extended dataset of mono- and dipeptide pairwise umbrella sampling simulations
+    """
     def get_traj_top(self, name: str, pdb_fn: str):
+        """
+        For a given DIMER pair name, returns a loaded MDTraj object at the input resolution 
+        (generally atomistic) as well as the dataframe associated with its topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        pdb_fn:
+            Path to pdb structure file
+        """
         pdb = md.load(pdb_fn.format(name))
         aa_traj = pdb.atom_slice(
             [a.index for a in pdb.topology.atoms if a.residue.is_protein]
@@ -121,6 +210,17 @@ class DIMER_ext_loader(DatasetLoader):
     def load_coords_forces(
         self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        For a given DIMER pair name, returns np.ndarray's of its coordinates and forces at 
+        the input resolution (generally atomistic)
+
+        Parameters
+        ----------
+        base_dir:
+            Path to coordinate and force files
+        name:
+            Name of input sample
+        """
         coord = np.load(
             glob(os.path.join(base_dir, f"dip_dimers_*/data/{name}_coord.npy"))[0],
             allow_pickle=True,
@@ -139,7 +239,21 @@ class DIMER_ext_loader(DatasetLoader):
 
 
 class Trpcage_loader(DatasetLoader):
+    """
+    Loader object for Trpcage simulation dataset
+    """
     def get_traj_top(self, name: str, pdb_fn: str):
+        """
+        For a given name, returns a loaded MDTraj object at the input resolution 
+        (generally atomistic) as well as the dataframe associated with its topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        pdb_fn:
+            Path to pdb structure file
+        """
         pdb = md.load(pdb_fn.format(name))
         aa_traj = pdb.atom_slice(
             [a.index for a in pdb.topology.atoms if a.residue.is_protein]
@@ -150,6 +264,17 @@ class Trpcage_loader(DatasetLoader):
     def load_coords_forces(
         self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        For a given name, returns np.ndarray's of its coordinates and forces at 
+        the input resolution (generally atomistic)
+
+        Parameters
+        ----------
+        base_dir:
+            Path to coordinate and force files
+        name:
+            Name of input sample
+        """
         coords_fns = natsorted(
             glob(
                 os.path.join(base_dir, f"coords_nowater/trp_coor_folding-trpcage_*.npy")
@@ -220,7 +345,21 @@ class Cln_loader(DatasetLoader):
 
 
 class SimInput_loader(DatasetLoader):
+    """
+    Loader for protein structures to be used in CG simulations
+    """
     def get_traj_top(self, name: str, raw_data_dir: str):
+        """
+        For a given name, returns a loaded MDTraj object at the input resolution 
+        (generally atomistic) as well as the dataframe associated with its topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        raw_data_dir:
+            Path to pdb structure file
+        """
         pdb = md.load(f"{raw_data_dir}{name}.pdb")
         input_traj = pdb.atom_slice(
             [a.index for a in pdb.topology.atoms if a.residue.is_protein]

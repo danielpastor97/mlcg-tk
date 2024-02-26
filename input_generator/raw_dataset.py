@@ -24,6 +24,9 @@ from .prior_gen import PriorBuilder
 
 
 def get_strides(n_structure: int, batch_size: int):
+    """
+    Helper function to stride batched data
+    """
     n_elem, remain = np.divmod(n_structure, batch_size)
     assert remain > -1, f"remain: {remain}"
     if remain == 0:
@@ -39,12 +42,32 @@ def get_strides(n_structure: int, batch_size: int):
 
 
 class CGDataBatch:
+    """
+    Splits input CG data into batches for further memory-efficient processing
+
+    Attributes
+    ----------
+    batch_size:
+        Number of frames to use in each batch
+    stride:
+        Integer by which to stride frames
+    concat_forces:
+        Boolean indicating whether forces should be added to batch
+    cg_coords:
+        Coarse grained coordinates
+    cg_forces:
+        Coarse grained forces
+    cg_embeds:
+        Atom embeddings
+    cg_prior_nls:
+        Dictionary of prior neighbour list
+    """
     def __init__(
         self,
-        cg_coords,
-        cg_forces,
-        cg_embeds,
-        cg_prior_nls,
+        cg_coords: np.ndarray,
+        cg_forces: np.ndarray,
+        cg_embeds: np.ndarray,
+        cg_prior_nls: Dict,
         batch_size: int,
         stride: int,
         concat_forces: bool = False,
@@ -68,6 +91,9 @@ class CGDataBatch:
         return self.n_elem
 
     def __getitem__(self, idx):
+        """
+        Returns list of AtomicData objects for indexed batch
+        """
         st, nd = self.strides[idx]
         data_list = []
         # TODO: build the collated AtomicData by hand to avoid copy/concat ops
@@ -96,7 +122,7 @@ class SampleCollection:
     """
     Input generation object for loading, manupulating, and saving training data samples.
 
-    Parameters
+    Attributes
     ----------
     name:
         String associated with atomistic trajectory output.
@@ -225,6 +251,10 @@ class SampleCollection:
             Mapping scheme to be used, must be either 'slice_aggregate' or 'slice_optimize'.
         force_stride:
             Striding to use for force projection results
+
+        Returns
+        -------
+        Tuple of np.ndarray's for coarse grained coordinates and forces 
         """
         if coords.shape != forces.shape:
             warnings.warn(
@@ -299,23 +329,24 @@ class SampleCollection:
                 np.save(f"{save_templ}_cg_forces.npy", cg_forces)
 
     def get_prior_nls(
-        self, prior_builders: List[PriorBuilder], save_nls: bool = True, **kwargs
+        self,
+        prior_builders: List[PriorBuilder],
+        save_nls: bool = True, **kwargs
     ) -> Dict:
         """
         Creates neighbourlists for all prior terms specified in the prior_dict.
 
         Parameters
         ----------
-        prior_dict:
-            Dictionary of prior terms and their corresponding parameters.
-            Must minimally contain the following information for each key:
-
-            str(prior_name) : {
-                "type" : string specifying type as one of 'bonds', 'angles', 'dihedrals', 'non_bonded'
-                "prior_function" : name of a function implemented in priors.py which will be used to collect
-                            atom groups associated with the prior term.
-                ...
-                }
+        prior_builders:
+            List of PriorBuilder objects and their corresponding parameters.
+            Input config file must minimally contain the following information for 
+            each builder:
+                class_path: class specifying PriorBuilder object implemented in `prior_gen.py`
+                init_args:
+                    name: string specifying type as one of 'bonds', 'angles', 'dihedrals', 'non_bonded'
+                    nl_builder: name of class implemented in `prior_nls.py` which will be used to collect
+                                atom groups associated with the prior term.
         save_nls:
             If true, will save an output of the molecule's neighbourlist.
         kwargs:
@@ -330,36 +361,38 @@ class SampleCollection:
 
         Example
         -------
+        To build neighbour lists for a system with priors for bonds, angles, nonbonded pairs, and phi and 
+        psi dihedral angles:
 
-        prior_dict: {
-            bonds:
-                type: bonds
-                prior_function: standard_bonds
+            - class_path: input_generator.Bonds
+              init_args:
+                name: bonds
                 separate_termini: true
-            angles:
-                type: angles
-                prior_function: standard_angles
+                nl_builder: input_generator.StandardBonds
+            - class_path: input_generator.Angles
+              init_args:
+                name: angles
                 separate_termini: true
-            non_bonded:
-                type: non_bonded
-                prior_function: non_bonded
+                nl_builder: input_generator.StandardAngles
+            - class_path: input_generator.NonBonded
+              init_args:
+                name: non_bonded
                 min_pair: 6
                 res_exclusion: 1
                 separate_termini: false
-            phi:
-                type: dihedrals
-                prior_function: phi
-            psi:
-                type: dihedrals
-                prior_function: psi
-        }
+                nl_builder: input_generator.Non_Bonded
+            - class_path: input_generator.Dihedrals
+              init_args:
+                name: phi
+                nl_builder: input_generator.Phi
+            - class_path: input_generator.Dihedrals
+              init_args:
+                name: psi
+                nl_builder: input_generator.Psi
         """
-        # if function has not been written for prior term, will be skipped
-        omit_prior = []
-        prior_builders
 
         for prior_builder in prior_builders:
-            if getattr(prior_builder, "separate_termini", True):
+            if getattr(prior_builder, "separate_termini", False):
                 prior_builder = get_terminal_atoms(
                     prior_builder,
                     cg_dataframe=self.cg_dataframe,
@@ -397,7 +430,26 @@ class SampleCollection:
 
         return prior_nls
 
-    def load_cg_output(self, save_dir: str, prior_tag: str = ""):
+    def load_cg_output(
+            self,
+            save_dir: str,
+            prior_tag: str = ""
+    ) -> Tuple:
+        """
+        Loads all cg data produced by `save_cg_output` and `get_prior_nls`
+
+        Parameters
+        ----------
+        save_dir:
+            Location of saved cg data
+        prior_tag:
+            String identifying the specific combination of prior terms
+
+        Returns
+        -------
+        Tuple of np.ndarrays containing coarse grained coordinates, forces, embeddings,
+        structure, and prior neighbour list 
+        """
         save_templ = os.path.join(save_dir, f"{self.tag}{self.name}")
         cg_coords = np.load(f"{save_templ}_cg_coords.npy")
         cg_forces = np.load(f"{save_templ}_cg_forces.npy")
@@ -418,6 +470,24 @@ class SampleCollection:
         batch_size: int,
         stride: int,
     ):
+        """
+        Loads saved CG data nad splits these into batches for further processing
+        
+        Parameters
+        ----------
+        save_dir:
+            Location of saved cg data
+        prior_tag:
+            String identifying the specific combination of prior terms
+        batch_size:
+            Number of frames to use in each batch
+        stride:
+            Integer by which to stride frames
+
+        Returns
+        -------
+        Loaded CG data split into list of batches
+        """
         cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls = self.load_cg_output(
             save_dir, prior_tag
         )
@@ -428,6 +498,20 @@ class SampleCollection:
 
 
 class RawDataset:
+    """
+    Generates a list of data samples for a specified dataset
+
+    Attributes
+    ----------
+    dataset_name:
+        Name given to dataset
+    names:
+        List of sample names
+    tag:
+        Label given to all output files produced from dataset
+    dataset:
+        List of SampleCollection objects for all samples in dataset
+    """
     def __init__(self, dataset_name: str, names: List[str], tag: str) -> None:
         self.dataset_name = dataset_name
         self.names = names
@@ -449,6 +533,20 @@ class RawDataset:
 
 
 class SimInput:
+    """
+    Generates a list of samples from pdb structures to be used in simulation
+
+    Attributes
+    ----------
+    dataset_name:
+        Name given to dataset
+    tag:
+        Label given to all output files produced from dataset
+    pdb_fns:
+        List of pdb filenames from which samples will be generated
+    dataset:
+        List of SampleCollection objects for all structures
+    """
     def __init__(self, dataset_name: str, tag: str, pdb_fns: List[str]) -> None:
         self.dataset_name = dataset_name
         self.names = [fn[:-4] for fn in pdb_fns]
