@@ -30,7 +30,7 @@ If a prior model has not already been created for a given set of samples, this c
 
 Command:
 
-`python ../scripts/produce_delta_forces.py produce_delta_forces --config trpcage_produce.yaml`
+`python ../scripts/produce_delta_forces.py produce_delta_forces --config trpcage_delta_forces.yaml`
 
 This procedure will load the prior model specified by `prior_fn` and then once again loop over all sample names provided. It will then calculate and remove the baseline forces using the coordinates, forces, embeddings, and neighbourlists created in the previous step. It will then save the delta forces which can then be used for training.
 

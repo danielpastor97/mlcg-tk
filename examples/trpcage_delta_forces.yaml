@@ -3,6 +3,6 @@ names: [2JOF]
 tag: ""
 save_dir: /local_scratch2/musil/make_datasets/datasets/input_generator_trpcage/test
 prior_tag: cgschnet
-prior_fn: /import/a12/users/aguljas/mlcg_base_cg_data/test_pipeline/priors/full_prior_model_cgschnet.pt
-device: cpu
-batch_size: 1000
+prior_fn: /local_scratch2/musil/make_datasets/datasets/input_generator_trpcage/test/cgschnet_prior_model.pt
+batch_size: 10000
+device: cuda
