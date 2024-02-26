@@ -62,6 +62,7 @@ class CGDataBatch:
     cg_prior_nls:
         Dictionary of prior neighbour list
     """
+
     def __init__(
         self,
         cg_coords: np.ndarray,
@@ -254,7 +255,7 @@ class SampleCollection:
 
         Returns
         -------
-        Tuple of np.ndarray's for coarse grained coordinates and forces 
+        Tuple of np.ndarray's for coarse grained coordinates and forces
         """
         if coords.shape != forces.shape:
             warnings.warn(
@@ -329,9 +330,7 @@ class SampleCollection:
                 np.save(f"{save_templ}_cg_forces.npy", cg_forces)
 
     def get_prior_nls(
-        self,
-        prior_builders: List[PriorBuilder],
-        save_nls: bool = True, **kwargs
+        self, prior_builders: List[PriorBuilder], save_nls: bool = True, **kwargs
     ) -> Dict:
         """
         Creates neighbourlists for all prior terms specified in the prior_dict.
@@ -340,7 +339,7 @@ class SampleCollection:
         ----------
         prior_builders:
             List of PriorBuilder objects and their corresponding parameters.
-            Input config file must minimally contain the following information for 
+            Input config file must minimally contain the following information for
             each builder:
                 class_path: class specifying PriorBuilder object implemented in `prior_gen.py`
                 init_args:
@@ -361,7 +360,7 @@ class SampleCollection:
 
         Example
         -------
-        To build neighbour lists for a system with priors for bonds, angles, nonbonded pairs, and phi and 
+        To build neighbour lists for a system with priors for bonds, angles, nonbonded pairs, and phi and
         psi dihedral angles:
 
             - class_path: input_generator.Bonds
@@ -410,9 +409,11 @@ class SampleCollection:
         tags = [x[0] for x in all_edges_and_orders]
         orders = [x[1] for x in all_edges_and_orders]
         edges = [
-            torch.tensor(x[2]).type(torch.LongTensor)
-            if isinstance(x[2], np.ndarray)
-            else x[2].type(torch.LongTensor)
+            (
+                torch.tensor(x[2]).type(torch.LongTensor)
+                if isinstance(x[2], np.ndarray)
+                else x[2].type(torch.LongTensor)
+            )
             for x in all_edges_and_orders
         ]
         prior_nls = {}
@@ -430,11 +431,7 @@ class SampleCollection:
 
         return prior_nls
 
-    def load_cg_output(
-            self,
-            save_dir: str,
-            prior_tag: str = ""
-    ) -> Tuple:
+    def load_cg_output(self, save_dir: str, prior_tag: str = "") -> Tuple:
         """
         Loads all cg data produced by `save_cg_output` and `get_prior_nls`
 
@@ -448,7 +445,7 @@ class SampleCollection:
         Returns
         -------
         Tuple of np.ndarrays containing coarse grained coordinates, forces, embeddings,
-        structure, and prior neighbour list 
+        structure, and prior neighbour list
         """
         save_templ = os.path.join(save_dir, f"{self.tag}{self.name}")
         cg_coords = np.load(f"{save_templ}_cg_coords.npy")
@@ -472,7 +469,7 @@ class SampleCollection:
     ):
         """
         Loads saved CG data nad splits these into batches for further processing
-        
+
         Parameters
         ----------
         save_dir:
@@ -512,6 +509,7 @@ class RawDataset:
     dataset:
         List of SampleCollection objects for all samples in dataset
     """
+
     def __init__(self, dataset_name: str, names: List[str], tag: str) -> None:
         self.dataset_name = dataset_name
         self.names = names
@@ -547,6 +545,7 @@ class SimInput:
     dataset:
         List of SampleCollection objects for all structures
     """
+
     def __init__(self, dataset_name: str, tag: str, pdb_fns: List[str]) -> None:
         self.dataset_name = dataset_name
         self.names = [fn[:-4] for fn in pdb_fns]

@@ -33,6 +33,7 @@ class CGEmbeddingMap(dict):
     """
     General class for defining embedding maps as Dict
     """
+
     def __init__(self, embedding_map_dict: Dict[str, int]):
         for k, v in embedding_map_dict.items():
             self[k] = v
@@ -47,6 +48,7 @@ class CGEmbeddingMapFiveBead(CGEmbeddingMap):
         - O : backbone carbonyl oxygen
         - CB : residue-specific beta carbon
     """
+
     def __init__(self):
         super().__init__(embedding_map_fivebead)
 
@@ -77,7 +79,7 @@ all_residues = [
 
 def embedding_fivebead(atom_df):
     """
-    Helper function for mapping high-resolution topology to 
+    Helper function for mapping high-resolution topology to
     5-bead embedding map.
     """
     name, res = atom_df["name"], atom_df["resName"]

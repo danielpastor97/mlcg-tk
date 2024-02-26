@@ -22,15 +22,16 @@ from .embedding_maps import all_residues
 class StandardBonds:
     """
     Pairwise interactions corresponding to physically bonded atoms
-    
+
     Attributes
     ----------
     nl_names
         All possible outputs of bonded neighbourlist;
         If `separate_termini` is False, only bonds are returned, otherwise
-        atom groups are split based on interactions between only bulk atoms or 
+        atom groups are split based on interactions between only bulk atoms or
         interactions with atoms in terminal residues.
     """
+
     nl_names = ["n_term_bonds", "bulk_bonds", "c_term_bonds", "bonds"]
 
     def __call__(
@@ -42,7 +43,7 @@ class StandardBonds:
         topology:
             MDTraj topology object from which atom groups defining each prior term will be created.
         separate_termini:
-            Whether atom groups should be split between bulk interactions and those involving atoms 
+            Whether atom groups should be split between bulk interactions and those involving atoms
             in terminal residues
         """
         mlcg_top = Topology.from_mdtraj(topology)
@@ -86,15 +87,16 @@ class StandardBonds:
 class StandardAngles:
     """
     Interactions corresponding to angles formed between three physically bonded atoms
-    
+
     Attributes
     ----------
     nl_names
         All possible outputs of bonded neighbourlist;
         If `separate_termini` is False, only bonds are returned, otherwise
-        atom groups are split based on interactions between only bulk atoms or 
+        atom groups are split based on interactions between only bulk atoms or
         interactions with atoms in terminal residues.
     """
+
     nl_names = ["n_term_angles", "bulk_angles", "c_term_angles", "angles"]
 
     def __call__(
@@ -106,7 +108,7 @@ class StandardAngles:
         topology:
             MDTraj topology object from which atom groups defining each prior term will be created.
         separate_termini:
-            Whether atom groups should be split between bulk interactions and those involving atoms 
+            Whether atom groups should be split between bulk interactions and those involving atoms
             in terminal residues
         """
         mlcg_top = Topology.from_mdtraj(topology)
@@ -149,15 +151,16 @@ class StandardAngles:
 class Non_Bonded:
     """
     Pairwise interactions corresponding to nonbonded atoms
-    
+
     Attributes
     ----------
     nl_names
         All possible outputs of bonded neighbourlist;
         If `separate_termini` is False, only bonds are returned, otherwise
-        atom groups are split based on interactions between only bulk atoms or 
+        atom groups are split based on interactions between only bulk atoms or
         interactions with atoms in terminal residues.
     """
+
     nl_names = ["n_term_nonbonded", "bulk_nonbonded", "c_term_nonbonded", "non_bonded"]
 
     def __call__(
@@ -186,7 +189,7 @@ class Non_Bonded:
             If supplied, pairs within res_exclusion residues of each other are removed
             from the non-bonded set
         separate_termini:
-            Whether atom groups should be split between bulk interactions and those involving atoms 
+            Whether atom groups should be split between bulk interactions and those involving atoms
             in terminal residues
         """
         mlcg_top = Topology.from_mdtraj(topology)
@@ -248,13 +251,14 @@ class Phi:
     Phi (proper) dihedral angle formed by the following atoms:
     C_{n-1} - N_{n} - CA_{n} - C_{n}
     where n represents the amino acid for which the angle is defined
-    
+
     Attributes
     ----------
     nl_names
         All possible outputs of bonded neighbourlist;
         Atom groups of phi angles of each amino acid are recorded separately
     """
+
     nl_names = [f"{res}_phi" for res in all_residues]
 
     def __call__(
@@ -288,13 +292,14 @@ class Psi:
     Psi (proper) dihedral angle formed by the following atoms:
     N_{n} - CA_{n} - C_{n} - N_{n+1}
     where n represents the amino acid for which the angle is defined
-    
+
     Attributes
     ----------
     nl_names
         All possible outputs of bonded neighbourlist;
         Atom groups of psi angles of each amino acid are recorded separately
     """
+
     nl_names = [f"{res}_psi" for res in all_residues]
 
     def __call__(
@@ -325,13 +330,14 @@ class Omega:
     Omega (proper) dihedral angle formed by the following atoms:
     CA_{n-1} - C_{n-1} - N_{n} - C_{n}
     where n represents the amino acid for which the angle is defined
-    
+
     Attributes
     ----------
     nl_names
         All possible outputs of bonded neighbourlist;
         Atom groups of omega angles are recorded separately only for proline
     """
+
     nl_names = ["pro_omega", "non_pro_omega"]
     replace_gly_ca_stats = True
 
@@ -376,13 +382,14 @@ class Gamma1:
     where n represents the amino acid for which the angle is defined;
     gamma_1 angle is measured between the plane formed by the first, third, and
     fourth atom and the vector from the first to second atom.
-    
+
     Attributes
     ----------
     nl_names
         All possible outputs of bonded neighbourlist;
         Atom groups of gamma_1 angles are not separaeted by amino acid type
     """
+
     nl_names = ["gamma_1"]
 
     def __call__(
@@ -414,13 +421,14 @@ class Gamma2:
     where n represents the amino acid for which the angle is defined;
     gamma_2 angle is measured between the plane formed by the first, third, and
     fourth atom and the vector from the first to second atom.
-    
+
     Attributes
     ----------
     nl_names
         All possible outputs of bonded neighbourlist;
         Atom groups of gamma_2 angles are not separaeted by amino acid type
     """
+
     nl_names = ["gamma_2"]
 
     def __call__(

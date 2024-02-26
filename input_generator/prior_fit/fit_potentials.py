@@ -14,13 +14,13 @@ def fit_potentials(
     temperature: float = 300.0,
 ):
     """
-    Fits energy function to atom type-specific statistics defined 
+    Fits energy function to atom type-specific statistics defined
     for a group of atoms in a neighbour list.
 
     Parameters
     ----------
     nl_name:
-        Neighbour list label 
+        Neighbour list label
     prior_builder:
         PriorBuilder object containing histogram data
     embedding_map [Optional]:
@@ -35,13 +35,13 @@ def fit_potentials(
         nn.ModuleDict of prior models
     all_stats:
         dictionary of statistics dictionaries for each prior fit
-    
+
     Returns
     -------
-    model :ref:`mlcg.nn.GradientsOut` module containing gathered 
-    statistics and estimated energy parameters based on the `TargetPrior`. 
+    model :ref:`mlcg.nn.GradientsOut` module containing gathered
+    statistics and estimated energy parameters based on the `TargetPrior`.
     The following key/value pairs are common across all `TargetPrior`s:
-        
+
     .. code-block:: python
 
         (*specific_types) : {
@@ -111,7 +111,7 @@ def fit_potentials(
 
 def replace_gly_stats(statistics, gly_bead, ca_bead):
     """
-    Helper method for replacing poor GLY statistics for dihedral NL with statistics 
+    Helper method for replacing poor GLY statistics for dihedral NL with statistics
     associated with general CA beads.
     """
     gly_atom_groups = [group for group in list(statistics.keys()) if gly_bead in group]

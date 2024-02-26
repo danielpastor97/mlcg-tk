@@ -15,9 +15,10 @@ class CATH_loader(DatasetLoader):
     """
     Loader object for original 50 CATH domain proteins
     """
+
     def get_traj_top(self, name: str, pdb_fn: str):
         """
-        For a given CATH domain name, returns a loaded MDTraj object at the input resolution 
+        For a given CATH domain name, returns a loaded MDTraj object at the input resolution
         (generally atomistic) as well as the dataframe associated with its topology.
 
         Parameters
@@ -38,7 +39,7 @@ class CATH_loader(DatasetLoader):
         self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        For a given CATH domain name, returns np.ndarray's of its coordinates and forces at 
+        For a given CATH domain name, returns np.ndarray's of its coordinates and forces at
         the input resolution (generally atomistic)
 
         Parameters
@@ -71,9 +72,10 @@ class CATH_ext_loader(DatasetLoader):
     """
     Loader object for extended dataset of CATH domain proteins
     """
+
     def get_traj_top(self, name: str, pdb_fn: str):
         """
-        For a given CATH domain name, returns a loaded MDTraj object at the input resolution 
+        For a given CATH domain name, returns a loaded MDTraj object at the input resolution
         (generally atomistic) as well as the dataframe associated with its topology.
 
         Parameters
@@ -95,7 +97,7 @@ class CATH_ext_loader(DatasetLoader):
         self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        For a given CATH domain name, returns np.ndarray's of its coordinates and forces at 
+        For a given CATH domain name, returns np.ndarray's of its coordinates and forces at
         the input resolution (generally atomistic)
 
         Parameters
@@ -139,9 +141,10 @@ class DIMER_loader(DatasetLoader):
     """
     Loader object for original dataset of mono- and dipeptide pairwise umbrella sampling simulations
     """
+
     def get_traj_top(self, name: str, pdb_fn: str):
         """
-        For a given DIMER pair name, returns a loaded MDTraj object at the input resolution 
+        For a given DIMER pair name, returns a loaded MDTraj object at the input resolution
         (generally atomistic) as well as the dataframe associated with its topology.
 
         Parameters
@@ -162,7 +165,7 @@ class DIMER_loader(DatasetLoader):
         self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        For a given DIMER pair name, returns np.ndarray's of its coordinates and forces at 
+        For a given DIMER pair name, returns np.ndarray's of its coordinates and forces at
         the input resolution (generally atomistic)
 
         Parameters
@@ -188,9 +191,10 @@ class DIMER_ext_loader(DatasetLoader):
     """
     Loader object for extended dataset of mono- and dipeptide pairwise umbrella sampling simulations
     """
+
     def get_traj_top(self, name: str, pdb_fn: str):
         """
-        For a given DIMER pair name, returns a loaded MDTraj object at the input resolution 
+        For a given DIMER pair name, returns a loaded MDTraj object at the input resolution
         (generally atomistic) as well as the dataframe associated with its topology.
 
         Parameters
@@ -211,7 +215,7 @@ class DIMER_ext_loader(DatasetLoader):
         self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        For a given DIMER pair name, returns np.ndarray's of its coordinates and forces at 
+        For a given DIMER pair name, returns np.ndarray's of its coordinates and forces at
         the input resolution (generally atomistic)
 
         Parameters
@@ -242,9 +246,10 @@ class Trpcage_loader(DatasetLoader):
     """
     Loader object for Trpcage simulation dataset
     """
+
     def get_traj_top(self, name: str, pdb_fn: str):
         """
-        For a given name, returns a loaded MDTraj object at the input resolution 
+        For a given name, returns a loaded MDTraj object at the input resolution
         (generally atomistic) as well as the dataframe associated with its topology.
 
         Parameters
@@ -265,7 +270,7 @@ class Trpcage_loader(DatasetLoader):
         self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        For a given name, returns np.ndarray's of its coordinates and forces at 
+        For a given name, returns np.ndarray's of its coordinates and forces at
         the input resolution (generally atomistic)
 
         Parameters
@@ -303,6 +308,7 @@ class Trpcage_loader(DatasetLoader):
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces
 
+
 class Cln_loader(DatasetLoader):
     def get_traj_top(self, name: str, pdb_fn: str):
         pdb = md.load(pdb_fn.format(name))
@@ -316,15 +322,11 @@ class Cln_loader(DatasetLoader):
         self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
         coords_fns = natsorted(
-            glob(
-                os.path.join(base_dir, f"coords_nowater/chig_coor_*.npy")
-            )
+            glob(os.path.join(base_dir, f"coords_nowater/chig_coor_*.npy"))
         )
 
         forces_fns = [
-            fn.replace(
-                "coords_nowater/chig_coor_", "forces_nowater/chig_force_"
-            )
+            fn.replace("coords_nowater/chig_coor_", "forces_nowater/chig_force_")
             for fn in coords_fns
         ]
 
@@ -348,9 +350,10 @@ class SimInput_loader(DatasetLoader):
     """
     Loader for protein structures to be used in CG simulations
     """
+
     def get_traj_top(self, name: str, raw_data_dir: str):
         """
-        For a given name, returns a loaded MDTraj object at the input resolution 
+        For a given name, returns a loaded MDTraj object at the input resolution
         (generally atomistic) as well as the dataframe associated with its topology.
 
         Parameters
