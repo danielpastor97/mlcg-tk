@@ -1,9 +1,0 @@
-dataset_name: 2JOF
-names: [2JOF]
-tag: ""
-save_dir: /local_scratch2/musil/make_datasets/datasets/input_generator_trpcage/test
-prior_tag: cgschnet
-prior_fn: /local_scratch2/musil/make_datasets/datasets/input_generator_trpcage/test/cgschnet_prior_model.pt
-batch_size: 10000
-device: cuda:0
-
