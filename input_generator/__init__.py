@@ -5,6 +5,7 @@ from .raw_data_loader import (
     DIMER_loader,
     DIMER_ext_loader,
     Trpcage_loader,
+    Cln_loader,
 )
 
 from .embedding_maps import CGEmbeddingMap, CGEmbeddingMapFiveBead, embedding_fivebead

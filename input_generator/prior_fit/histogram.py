@@ -17,7 +17,7 @@ plt.rcParams["figure.max_open_warning"] = 50
 
 class HistogramsNL:
     """
-    Accumulates and stores statistics for a given feature associated with 
+    Accumulates and stores statistics for a given feature associated with
     specific atom groups (from defined neighbour lists).
 
     Attributes
@@ -30,6 +30,7 @@ class HistogramsNL:
     bmax:
         Upper bound of bin edges
     """
+
     def __init__(
         self,
         n_bins: int,
@@ -48,11 +49,11 @@ class HistogramsNL:
         )
 
     def accumulate_statistics(
-            self,
-            nl_name: str,
-            values: torch.Tensor,
-            atom_types: torch.Tensor,
-            mapping: torch.Tensor
+        self,
+        nl_name: str,
+        values: torch.Tensor,
+        atom_types: torch.Tensor,
+        mapping: torch.Tensor,
     ) -> None:
         """
         Accumulates statistics from computed features.
@@ -60,7 +61,7 @@ class HistogramsNL:
         Parameters
         ----------
         nl_name:
-            Neighbour list tag 
+            Neighbour list tag
         values:
             Tensor of computed values to be binned
         atom_types:
@@ -217,9 +218,10 @@ def compute_hist(
             continue
 
         hist = torch.histc(val, bins=nbins, min=bmin, max=bmax)
-
+        kk = tensor2tuple(unique_key)
         kf = tensor2tuple(_flip_map[order](unique_key))
-        histograms[kf] = hist.cpu().numpy()
+        histograms[kk] = hist.cpu().numpy()
+        histograms[kf] = deepcopy(hist.cpu().numpy())
 
     return histograms
 

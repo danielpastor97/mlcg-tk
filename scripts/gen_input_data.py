@@ -65,7 +65,7 @@ def process_raw_dataset(
     use_terminal_embeddings : bool
         Whether separate embedding types should be assigned to terminal atoms
     cg_mapping_strategy : str
-        Strategy to use for coordinate and force mappings; 
+        Strategy to use for coordinate and force mappings;
         currently only "slice_aggregate" and "slice_optimize" are implemented
     prior_tag : str
         String identifying the specific combination of prior terms

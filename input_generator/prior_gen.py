@@ -21,12 +21,12 @@ class PriorBuilder:
     """
     General prior builder object holding statistics computed for a given prior
     feature and functions that are used to build neighbour lists and fit potentials
-    to the computed statistics. 
+    to the computed statistics.
 
     Attributes
     ----------
     histograms:
-        HistogramsNL object for storing binned feature statistics 
+        HistogramsNL object for storing binned feature statistics
     nl_builder:
         Neighbour list class to be used in building neighbour list
     prior_fit_fn:
@@ -34,6 +34,7 @@ class PriorBuilder:
     prior_cls:
         Prior class for fitting features
     """
+
     def __init__(
         self,
         histograms: HistogramsNL,
@@ -47,13 +48,13 @@ class PriorBuilder:
         self.prior_cls = prior_cls
 
     def build_nl(
-            self,
-            topology: md.Topology,
-            **kwargs,
+        self,
+        topology: md.Topology,
+        **kwargs,
     ):
         """
         Generates tagged and ordered edges using neighbour list builder function
-        
+
         Parameters
         ----------
         topology:
@@ -65,13 +66,9 @@ class PriorBuilder:
         """
         return self.nl_builder(topology=topology)
 
-    def accumulate_statistics(
-            self,
-            nl_name: str,
-            data: AtomicData
-        ) -> None:
+    def accumulate_statistics(self, nl_name: str, data: AtomicData) -> None:
         """
-        Computes atom-type specific features and calculates statistics from a collated 
+        Computes atom-type specific features and calculates statistics from a collated
         AtomicData stucture
 
         Parameters
@@ -79,12 +76,11 @@ class PriorBuilder:
         nl_name:
             Neighbour list tag
         data:
-            Collated list of individual AtomicData structures. 
+            Collated list of individual AtomicData structures.
         """
         atom_types = data.atom_types
         mapping = data.neighbor_list[nl_name]["index_mapping"]
         values = self.prior_cls.compute_features(data.pos, mapping)
-
         self.histograms.accumulate_statistics(nl_name, values, atom_types, mapping)
 
 
@@ -110,6 +106,7 @@ class Bonds(PriorBuilder):
     prior_fit_fn:
         Function to be used in fitting potential from statistics
     """
+
     def __init__(
         self,
         name: str,
@@ -128,7 +125,7 @@ class Bonds(PriorBuilder):
             ),
             nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
-            prior_cls=HarmonicBonds,
+            prior_cls=GeneralBonds,
         )
         self.name = name
         self.type = "bonds"
@@ -139,14 +136,10 @@ class Bonds(PriorBuilder):
         self.n_atoms = None
         self.c_atoms = None
 
-    def build_nl(
-            self, 
-            topology,
-            **kwargs
-    ):
+    def build_nl(self, topology, **kwargs):
         """
         Generates edges for order-2 atom groups for bond prior
-        
+
         Parameters
         ----------
         topology:
@@ -165,23 +158,20 @@ class Bonds(PriorBuilder):
             c_atoms=self.c_atoms,
         )
 
-    def get_prior_model(
-            self,
-            statistics,
-            targets="forces",
-            **kwargs
-    ):
+    def get_prior_model(self, statistics, name, targets="forces", **kwargs):
         """
         Parameters
         ----------
         statistics:
-             Gathered bond statistics 
+            Gathered bond statistics
+        name: str
+            Name of the prior object (corresponding to nls name)
         targets:
             The gradient targets to produce from a model output. These can be any
             of the gradient properties referenced in `mlcg.data._keys`.
             At the moment only forces are implemented.
         """
-        return GradientsOut(self.prior_cls(statistics), targets=targets)
+        return GradientsOut(self.prior_cls(statistics, name=name), targets=targets)
 
 
 class Angles(PriorBuilder):
@@ -206,6 +196,7 @@ class Angles(PriorBuilder):
     prior_fit_fn:
         Function to be used in fitting potential from statistics
     """
+
     def __init__(
         self,
         name: str,
@@ -224,7 +215,7 @@ class Angles(PriorBuilder):
             ),
             nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
-            prior_cls=HarmonicAngles,
+            prior_cls=GeneralAngles,
         )
         self.name = name
         self.type = "angles"
@@ -235,14 +226,10 @@ class Angles(PriorBuilder):
         self.n_atoms = None
         self.c_atoms = None
 
-    def build_nl(
-            self, 
-            topology,
-            **kwargs
-    ):
+    def build_nl(self, topology, **kwargs):
         """
         Generates edges for order-3 atom groups for angle prior
-        
+
         Parameters
         ----------
         topology:
@@ -261,23 +248,20 @@ class Angles(PriorBuilder):
             c_atoms=self.c_atoms,
         )
 
-    def get_prior_model(
-            self,
-            statistics,
-            targets="forces",
-            **kwargs
-    ):
+    def get_prior_model(self, statistics, name, targets="forces", **kwargs):
         """
         Parameters
         ----------
         statistics:
-             Gathered angle statistics 
+             Gathered angle statistics
+        name: str
+            Name of the prior object (corresponding to nls name)
         targets:
             The gradient targets to produce from a model output. These can be any
             of the gradient properties referenced in `mlcg.data._keys`.
             At the moment only forces are implemented.
         """
-        return GradientsOut(self.prior_cls(statistics), targets=targets)
+        return GradientsOut(self.prior_cls(statistics, name=name), targets=targets)
 
 
 class NonBonded(PriorBuilder):
@@ -318,6 +302,7 @@ class NonBonded(PriorBuilder):
         If specified, only those input values below this cutoff will be used in
         evaluating the percentile
     """
+
     def __init__(
         self,
         name: str,
@@ -354,14 +339,10 @@ class NonBonded(PriorBuilder):
         self.n_atoms = None
         self.c_atoms = None
 
-    def build_nl(
-            self, 
-            topology,
-            **kwargs
-    ):
+    def build_nl(self, topology, **kwargs):
         """
         Generates edges for order-2 atom groups for nonbond prior
-        
+
         Parameters
         ----------
         topology:
@@ -391,23 +372,22 @@ class NonBonded(PriorBuilder):
             c_atoms=self.c_atoms,
         )
 
-    def get_prior_model(
-            self,
-            statistics,
-            targets="forces",
-            **kwargs
-    ):
+    def get_prior_model(self, statistics, name, targets="forces", **kwargs):
         """
         Parameters
         ----------
         statistics:
-             Gathered nonbonded statistics 
+             Gathered nonbonded statistics
+        name: str
+            Name of the prior object (corresponding to nls name)
         targets:
             The gradient targets to produce from a model output. These can be any
             of the gradient properties referenced in `mlcg.data._keys`.
             At the moment only forces are implemented.
         """
-        return GradientsOut(self.prior_cls(statistics), targets=targets)
+        prior = self.prior_cls(statistics)
+        prior.name = name
+        return GradientsOut(prior, targets=targets)
 
 
 class Dihedrals(PriorBuilder):
@@ -430,6 +410,7 @@ class Dihedrals(PriorBuilder):
     prior_fit_fn:
         Function to be used in fitting potential from statistics
     """
+
     def __init__(
         self,
         name: str,
@@ -452,17 +433,14 @@ class Dihedrals(PriorBuilder):
         self.name = name
         self.type = "dihedrals"
 
-    def get_prior_model(
-            self,
-            statistics,
-            targets="forces",
-            **kwargs
-    ):
+    def get_prior_model(self, statistics, name, targets="forces", **kwargs):
         """
         Parameters
         ----------
         statistics:
-             Gathered dihedral statistics 
+             Gathered dihedral statistics
+        name: str
+            Name of the prior object (corresponding to nls name)
         targets:
             The gradient targets to produce from a model output. These can be any
             of the gradient properties referenced in `mlcg.data._keys`.
@@ -472,4 +450,6 @@ class Dihedrals(PriorBuilder):
                 The maximum number of degrees to attempt to fit if using the AIC
                 criterion for prior model selection
         """
-        return GradientsOut(self.prior_cls(statistics, n_degs=kwargs["n_degs"]), targets=targets)
+        prior = self.prior_cls(statistics, n_degs=kwargs["n_degs"])
+        prior.name = name
+        return GradientsOut(prior, targets=targets)

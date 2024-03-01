@@ -67,7 +67,7 @@ def process_sim_input(
     use_terminal_embeddings : bool
         Whether separate embedding types should be assigned to terminal atoms
     cg_mapping_strategy : str
-        Strategy to use for coordinate and force mappings; 
+        Strategy to use for coordinate and force mappings;
         currently only "slice_aggregate" and "slice_optimize" are implemented
     """
     cg_coord_list = []
