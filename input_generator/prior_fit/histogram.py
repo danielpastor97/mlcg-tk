@@ -218,9 +218,10 @@ def compute_hist(
             continue
 
         hist = torch.histc(val, bins=nbins, min=bmin, max=bmax)
-
+        kk = tensor2tuple(unique_key)
         kf = tensor2tuple(_flip_map[order](unique_key))
-        histograms[kf] = hist.cpu().numpy()
+        histograms[kk] = hist.cpu().numpy()
+        histograms[kf] = deepcopy(hist.cpu().numpy())
 
     return histograms
 
