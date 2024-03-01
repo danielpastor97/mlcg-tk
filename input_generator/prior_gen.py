@@ -171,7 +171,7 @@ class Bonds(PriorBuilder):
             of the gradient properties referenced in `mlcg.data._keys`.
             At the moment only forces are implemented.
         """
-        return GradientsOut(self.prior_cls(statistics, name=name), targets="forces")
+        return GradientsOut(self.prior_cls(statistics, name=name), targets=targets)
 
 
 class Angles(PriorBuilder):
@@ -261,7 +261,7 @@ class Angles(PriorBuilder):
             of the gradient properties referenced in `mlcg.data._keys`.
             At the moment only forces are implemented.
         """
-        return GradientsOut(self.prior_cls(statistics, name=name), targets="forces")
+        return GradientsOut(self.prior_cls(statistics, name=name), targets=targets)
 
 
 class NonBonded(PriorBuilder):
@@ -387,7 +387,7 @@ class NonBonded(PriorBuilder):
         """
         prior = self.prior_cls(statistics)
         prior.name = name
-        return GradientsOut(prior, targets="forces")
+        return GradientsOut(prior, targets=targets)
 
 
 class Dihedrals(PriorBuilder):
@@ -452,4 +452,4 @@ class Dihedrals(PriorBuilder):
         """
         prior = self.prior_cls(statistics, n_degs=kwargs["n_degs"])
         prior.name = name
-        return GradientsOut(prior, targets="forces")
+        return GradientsOut(prior, targets=targets)
