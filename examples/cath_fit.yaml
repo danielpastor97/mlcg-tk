@@ -9,4 +9,5 @@ save_figs: false
 embedding_map: input_generator.CGEmbeddingMapFiveBead
 percentile: 1
 cutoff: 6
+temperature: 300
 
