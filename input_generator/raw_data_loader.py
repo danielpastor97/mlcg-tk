@@ -346,6 +346,62 @@ class Cln_loader(DatasetLoader):
         return aa_coords, aa_forces
 
 
+class OPEP_loader(DatasetLoader):
+    """
+    Loader for octapeptides dataset
+    """
+    def get_traj_top(self, name: str, pdb_fn: str):
+        """
+        For a given name, returns a loaded MDTraj object at the input resolution 
+        (generally atomistic) as well as the dataframe associated with its topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        pdb_fn:
+            Path to pdb structure file
+        """
+        pdb = md.load(pdb_fn.format(name))
+        aa_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.is_protein]
+        )
+        top_dataframe = aa_traj.topology.to_dataframe()[0]
+        return aa_traj, top_dataframe
+    
+    def load_coords_forces(
+            self, base_dir: str, name: str
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        For a given CATH domain name, returns np.ndarray's of its coordinates and forces at 
+        the input resolution (generally atomistic)
+
+        Parameters
+        ----------
+        base_dir:
+            Path to coordinate and force files
+        name:
+            Name of input sample
+        """
+        coord_files = sorted(glob(f"{base_dir}coords_nowater/opep_{name}/*.npy"))
+        if len(coord_files) == 0:
+            coord_files = sorted(glob(f"{base_dir}coords_nowater/coor_opep_{name}_*.npy"))
+        force_files = sorted(glob(f"{base_dir}forces_nowater/opep_{name}/*.npy"))
+        if len(force_files) == 0:
+            force_files = sorted(glob(f"{base_dir}forces_nowater/force_opep_{name}_*.npy"))
+
+        aa_coord_list = []
+        aa_force_list = []
+        for c, f in zip(coord_files, force_files):
+            coords = np.load(c)
+            forces = np.load(f)
+            aa_coord_list.append(coords)
+            aa_force_list.append(forces)
+        aa_coords = np.concatenate(aa_coord_list)
+        aa_forces = np.concatenate(aa_force_list)
+        return aa_coords, aa_forces
+
+
 class SimInput_loader(DatasetLoader):
     """
     Loader for protein structures to be used in CG simulations
