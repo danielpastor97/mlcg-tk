@@ -11,7 +11,7 @@ def fit_potentials(
     nl_name: str,
     prior_builder: PriorBuilder,
     embedding_map: Optional[CGEmbeddingMap],
-    temperature: float = 300.0,
+    temperature: float,
 ):
     """
     Fits energy function to atom type-specific statistics defined
