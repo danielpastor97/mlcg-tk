@@ -297,8 +297,8 @@ class Trpcage_loader(DatasetLoader):
         aa_force_list = []
         # load the files, checking against the mol dictionary
         for cfn, ffn in zip(coords_fns, forces_fns):
-            force = np.load(ffn) # in AA
-            coord = np.load(cfn) # in kcal/mol/AA
+            force = np.load(ffn)  # in AA
+            coord = np.load(cfn)  # in kcal/mol/AA
 
             assert coord.shape == force.shape
             aa_coord_list.append(coord)
@@ -333,8 +333,8 @@ class Cln_loader(DatasetLoader):
         aa_force_list = []
         # load the files, checking against the mol dictionary
         for cfn, ffn in zip(coords_fns, forces_fns):
-            force = np.load(ffn) # in AA
-            coord = np.load(cfn) # in kcal/mol/AA
+            force = np.load(ffn)  # in AA
+            coord = np.load(cfn)  # in kcal/mol/AA
 
             assert coord.shape == force.shape
             aa_coord_list.append(coord)
@@ -348,9 +348,10 @@ class OPEP_loader(DatasetLoader):
     """
     Loader for octapeptides dataset
     """
+
     def get_traj_top(self, name: str, pdb_fn: str):
         """
-        For a given name, returns a loaded MDTraj object at the input resolution 
+        For a given name, returns a loaded MDTraj object at the input resolution
         (generally atomistic) as well as the dataframe associated with its topology.
 
         Parameters
@@ -366,12 +367,12 @@ class OPEP_loader(DatasetLoader):
         )
         top_dataframe = aa_traj.topology.to_dataframe()[0]
         return aa_traj, top_dataframe
-    
+
     def load_coords_forces(
-            self, base_dir: str, name: str
+        self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        For a given CATH domain name, returns np.ndarray's of its coordinates and forces at 
+        For a given CATH domain name, returns np.ndarray's of its coordinates and forces at
         the input resolution (generally atomistic)
 
         Parameters
@@ -383,10 +384,14 @@ class OPEP_loader(DatasetLoader):
         """
         coord_files = sorted(glob(f"{base_dir}coords_nowater/opep_{name}/*.npy"))
         if len(coord_files) == 0:
-            coord_files = sorted(glob(f"{base_dir}coords_nowater/coor_opep_{name}_*.npy"))
+            coord_files = sorted(
+                glob(f"{base_dir}coords_nowater/coor_opep_{name}_*.npy")
+            )
         force_files = sorted(glob(f"{base_dir}forces_nowater/opep_{name}/*.npy"))
         if len(force_files) == 0:
-            force_files = sorted(glob(f"{base_dir}forces_nowater/force_opep_{name}_*.npy"))
+            force_files = sorted(
+                glob(f"{base_dir}forces_nowater/force_opep_{name}_*.npy")
+            )
 
         aa_coord_list = []
         aa_force_list = []
