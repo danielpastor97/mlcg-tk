@@ -297,10 +297,9 @@ class Trpcage_loader(DatasetLoader):
         aa_force_list = []
         # load the files, checking against the mol dictionary
         for cfn, ffn in zip(coords_fns, forces_fns):
-            force = np.load(ffn)
-            coord = np.load(cfn)
-            coord = coord  # * 10
-            force = force / 4.184  # convert to from kJ/mol/ang to kcal/mol/ang
+            force = np.load(ffn) # in AA
+            coord = np.load(cfn) # in kcal/mol/AA
+
             assert coord.shape == force.shape
             aa_coord_list.append(coord)
             aa_force_list.append(force)
@@ -336,7 +335,7 @@ class Cln_loader(DatasetLoader):
         for cfn, ffn in zip(coords_fns, forces_fns):
             force = np.load(ffn) # in AA
             coord = np.load(cfn) # in kcal/mol/AA
-            
+
             assert coord.shape == force.shape
             aa_coord_list.append(coord)
             aa_force_list.append(force)
