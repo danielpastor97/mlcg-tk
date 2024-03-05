@@ -16,6 +16,8 @@ Command:
 
 This procedure will loop over all of the sample names in specified by the `names` option. For each instance, it will load the atomistic coordinates, forces, and structures and map these to a lower resolution specified in the input file (this allows for various resolutions and CG embeddings to be used). Then, using the PriorBuilders listed in `prior_builders`, the script will generate a neighbourlist for each molecule, so long as the prior builders are implemented in `prior_gen.py` and their specific neighbour list builders are implemented in `prior_nls.py`.
 
+Keep in mind that the priors are assumed to be in [kcal/mol] at the fitting stage so raw forces should be transformed to [kcal/mol/angstrom].
+
 #### 2) Computing statistics and fitting priors
 
 Command:
@@ -53,6 +55,6 @@ conda activate mlcg_opeps-dataset
 
 python ../scripts/produce_delta_forces.py produce_delta_forces --config trpcage_produce.yaml
 ```
-Here, make sure to specify `cuda` for the `device` option in the config file. 
+Here, make sure to specify `cuda` for the `device` option in the config file.
 Note that depending on the machine being used and its available memory, it may be necessary to adjust the `batch_size`.
 
