@@ -11,11 +11,13 @@ def fit_potentials(
     nl_name: str,
     prior_builder: PriorBuilder,
     embedding_map: Optional[CGEmbeddingMap],
-    temperature: float = 300.0,
+    temperature: float,
 ):
     """
     Fits energy function to atom type-specific statistics defined
     for a group of atoms in a neighbour list.
+
+    Assumes that the resulting prior energies will be in [kcal/mol]!
 
     Parameters
     ----------
@@ -69,7 +71,7 @@ def fit_potentials(
 
     target_fit_kwargs = prior_builder.nl_builder.get_fit_kwargs(nl_name)
 
-    kB = 0.0019872041
+    kB = 0.0019872041  # kcal/(mol⋅K)
     beta = 1 / (temperature * kB)
 
     statistics = {}

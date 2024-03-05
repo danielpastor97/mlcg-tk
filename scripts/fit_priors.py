@@ -114,7 +114,7 @@ def fit_priors(
     save_dir: str,
     prior_tag: str,
     embedding_map: CGEmbeddingMap,
-    temperature: float = 300,
+    temperature: float,
 ):
     """
     Fits potential energy estimates to computed statistics
