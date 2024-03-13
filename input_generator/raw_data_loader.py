@@ -5,6 +5,7 @@ from glob import glob
 import h5py
 from typing import Tuple
 import mdtraj as md
+import warnings
 
 
 class DatasetLoader:
@@ -208,8 +209,9 @@ class DIMER_ext_loader(DatasetLoader):
         if len(pdb_fns) == 1:
             pdb = md.load(pdb_fns[0])
         else:
-            raise ValueError(
-                f"Pattern {pdb_fn.format(name)} has more than one result"
+            warnings.warn(
+                f"Pattern {pdb_fn.format(name)} has more than one result",
+                category=UserWarning,
             )
         aa_traj = pdb.atom_slice(
             [a.index for a in pdb.topology.atoms if a.residue.is_protein]
