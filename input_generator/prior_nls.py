@@ -19,6 +19,22 @@ from .utils import get_dihedral_groups, split_bulk_termini
 from .embedding_maps import all_residues
 
 
+def check_graph_distance(
+    graph: nx.Graph, node_1: int, node_2: int, min_distance: int
+) -> bool:
+    """Function to check if the shortest path between to nodes in a graph is smaller than `min_distance`
+
+    This covers the case when the nodes are in different connected components.
+    """
+    try:
+        shortest_path = bidirectional_shortest_path(graph, node_1, node_2)
+        dist = len(shortest_path)
+        return dist >= min_distance
+    except nx.exception.NetworkXNoPath:
+        # edges are in different connected components
+        return True
+
+
 class StandardBonds:
     """
     Pairwise interactions corresponding to physically bonded atoms
@@ -212,7 +228,7 @@ class Non_Bonded:
                 )
                 and (
                     graph.has_edge(p[0], p[1]) == False
-                    and len(bidirectional_shortest_path(graph, p[0], p[1])) >= min_pair
+                    and check_graph_distance(graph, p[0], p[1],min_pair)
                 )
                 and not np.all(bond_edges == p[:, None], axis=0).any()
                 and not np.all(angle_edges[[0, 2], :] == p[:, None], axis=0).any()
