@@ -101,6 +101,10 @@ def process_raw_dataset(
         )
 
         samples.save_cg_output(save_dir, save_coord_force=True)
+        # the sample object will retain the output so it makes sense to cut them 
+        del samples.cg_coords
+        del samples.cg_forces
+        
 
 
 def build_neighborlists(
