@@ -138,6 +138,62 @@ class CATH_ext_loader(DatasetLoader):
         return full_coords, full_forces
 
 
+class CATH_unfolded_loader(DatasetLoader):
+    """
+    Loader object for original 50 CATH domain proteins
+    """
+
+    def get_traj_top(self, name: str, pdb_fn: str):
+        """
+        For a given CATH domain name, returns a loaded MDTraj object at the input resolution
+        (generally atomistic) as well as the dataframe associated with its topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        pdb_fn:
+            Path to pdb structure file
+        """
+        pdb = md.load(pdb_fn.format(name, name))
+        aa_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.is_protein]
+        )
+        top_dataframe = aa_traj.topology.to_dataframe()[0]
+        return aa_traj, top_dataframe
+
+    def load_coords_forces(
+        self, base_dir: str, name: str
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        For a given CATH domain name, returns np.ndarray's of its coordinates and forces at
+        the input resolution (generally atomistic)
+
+        Parameters
+        ----------
+        base_dir:
+            Path to coordinate and force files
+        name:
+            Name of input sample
+        """
+        # return sorted(name, key=alphanum_key)
+        outputs_fns = sorted(glob(os.path.join(base_dir, f"{name}/outputs/outputs_*_run*.npz")))
+        aa_coord_list = []
+        aa_force_list = []
+        # load the files, checking against the mol dictionary
+        for fn in outputs_fns:
+            output = np.load(fn)
+            coord = output["coords"]
+            force = output["forces"]
+            force = force / 4.184  # convert to from kJ/mol/ang to kcal/mol/ang
+            assert coord.shape == force.shape
+            aa_coord_list.append(coord)
+            aa_force_list.append(force)
+        aa_coords = np.concatenate(aa_coord_list)
+        aa_forces = np.concatenate(aa_force_list)
+        return aa_coords, aa_forces
+    
+
 class DIMER_loader(DatasetLoader):
     """
     Loader object for original dataset of mono- and dipeptide pairwise umbrella sampling simulations
@@ -206,13 +262,7 @@ class DIMER_ext_loader(DatasetLoader):
             Path to pdb structure file
         """
         pdb_fns = glob(pdb_fn.format(name))
-        if len(pdb_fns) == 1:
-            pdb = md.load(pdb_fns[0])
-        else:
-            warnings.warn(
-                f"Pattern {pdb_fn.format(name)} has more than one result",
-                category=UserWarning,
-            )
+        pdb = md.load(pdb_fns[0])
         aa_traj = pdb.atom_slice(
             [a.index for a in pdb.topology.atoms if a.residue.is_protein]
         )
