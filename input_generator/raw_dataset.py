@@ -180,6 +180,7 @@ class SampleCollection:
 
         cg_df.index = [i for i in range(len(cg_df.index))]
         cg_df.serial = [i + 1 for i in range(len(cg_df.index))]
+        cg_df.resSeq = [cg_df.resSeq[i]*(cg_df.chainID[i]+1) for i in range(len(cg_df.resSeq))]
         self.cg_dataframe = cg_df
 
         cg_map = np.zeros((len(cg_atom_idx), self.input_traj.n_atoms))
