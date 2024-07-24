@@ -7,6 +7,7 @@ from .raw_data_loader import (
     DIMER_ext_loader,
     Trpcage_loader,
     Cln_loader,
+    BBA_loader,
     OPEP_loader,
 )
 

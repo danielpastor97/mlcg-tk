@@ -2,6 +2,7 @@ import numpy as np
 import os
 from natsort import natsorted
 from glob import glob
+from pathlib import Path
 import h5py
 from typing import Tuple
 import mdtraj as md
@@ -384,6 +385,43 @@ class Cln_loader(DatasetLoader):
 
         forces_fns = [
             fn.replace("coords_nowater/chig_coor_", "forces_nowater/chig_force_")
+            for fn in coords_fns
+        ]
+
+        aa_coord_list = []
+        aa_force_list = []
+        # load the files, checking against the mol dictionary
+        for cfn, ffn in zip(coords_fns, forces_fns):
+            force = np.load(ffn)  # in AA
+            coord = np.load(cfn)  # in kcal/mol/AA
+
+            assert coord.shape == force.shape
+            aa_coord_list.append(coord)
+            aa_force_list.append(force)
+        aa_coords = np.concatenate(aa_coord_list)
+        aa_forces = np.concatenate(aa_force_list)
+        return aa_coords, aa_forces
+
+class BBA_loader(DatasetLoader):
+    def get_traj_top(self, name: str, pdb_fn: str):
+        pdb = md.load(pdb_fn.format(name))
+        aa_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.is_protein]
+        )
+        top_dataframe = aa_traj.topology.to_dataframe()[0]
+        return aa_traj, top_dataframe
+
+    def load_coords_forces(
+        self, base_dir: str, name: str
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        traj_name_pat = "bba_coor_folding-bba_"
+        coord_pattern = Path(base_dir) / "coords_nowater" / f"{traj_name_pat}*.npy"
+        coords_fns = natsorted(
+            glob(str(coord_pattern))
+        )
+
+        forces_fns = [
+            fn.replace("coords_nowater", "forces_nowater").replace("coor","force")
             for fn in coords_fns
         ]
 

@@ -95,26 +95,26 @@ def process_sim_input(
                 N_term=sub_data_dict["N_term"], C_term=sub_data_dict["C_term"]
             )
 
-        cg_traj = samples.input_traj.atom_slice(samples.cg_atom_indices)
-        cg_coords = cg_traj.xyz * 10
-        cg_types = samples.cg_dataframe["type"].to_list()
+        cg_trajs = samples.input_traj.atom_slice(samples.cg_atom_indices)
         cg_masses = (
-            np.array([int(atom.element.mass) for atom in cg_traj.topology.atoms])
+            np.array([int(atom.element.mass) for atom in cg_trajs[0].topology.atoms])
             / mass_scale
         )
-
         prior_nls = samples.get_prior_nls(
             prior_builders=prior_builders,
             save_nls=False,
             save_dir=save_dir,
             prior_tag=prior_tag,
         )
-
-        for i in range(copies):
-            cg_coord_list.append(cg_coords)
-            cg_type_list.append(cg_types)
-            cg_mass_list.append(cg_masses)
-            cg_nls_list.append(prior_nls)
+        cg_types = samples.cg_dataframe["type"].to_list()
+        for i in range(cg_trajs.n_frames):
+            cg_traj = cg_trajs[i]
+            cg_coords = cg_traj.xyz * 10
+            for i in range(copies):
+                cg_coord_list.append(cg_coords)
+                cg_type_list.append(cg_types)
+                cg_mass_list.append(cg_masses)
+                cg_nls_list.append(prior_nls)
 
     data_list = []
     for coords, types, masses, nls in zip(
