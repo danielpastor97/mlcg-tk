@@ -18,6 +18,7 @@ from typing import Dict, List, Union, Callable, Optional
 from jsonargparse import CLI
 from scipy.integrate import trapezoid
 from collections import defaultdict
+from copy import deepcopy
 
 # import seaborn as sns
 
@@ -37,6 +38,7 @@ def compute_statistics(
     embedding_map: CGEmbeddingMap,
     device: str = "cpu",
     save_figs: bool = True,
+    save_sample_statistics: bool = False,
 ):
     """
     Computes structural features and accumulates statistics on dataset samples
@@ -63,6 +65,8 @@ def compute_statistics(
         Mapping object
     device: str
         Device on which to run delta force calculations
+    save_sample_statistics:
+        If true, will save individual list of prior builders with accumulated statistics of one molecule
     save_figs: bool
         Whether to plot histograms of computed statistics
     """
@@ -87,6 +91,31 @@ def compute_statistics(
         assert nl_names.issubset(
             all_nl_names
         ), f"some of the NL names '{nl_names}' in {dataset_name}:{samples.name} have not been registered in the nl_builder '{all_nl_names}'"
+
+        if save_sample_statistics == True:
+            sample_fnout = osp.join(save_dir, f"{samples.tag}{samples.name}_{prior_tag}_prior_builders.pck")
+            sample_prior_builders = [
+                deepcopy(prior_builder) for prior_builder in prior_builders
+            ]
+
+            sample_nl_name2prior_builder = {}
+            for prior_builder in sample_prior_builders: # clears any existing statistics from builders
+                for nl_name in prior_builder.nl_builder.nl_names:
+                    if nl_name in prior_builder.histograms.data.keys() and nl_name not in nl_names: 
+                        prior_builder.histograms.data.pop(nl_name)
+                    prior_builder.histograms.data[nl_name].clear()
+                    sample_nl_name2prior_builder[nl_name] = prior_builder
+
+            for batch in tqdm(batch_list, f"molecule name: {samples.name}", leave=False):
+                batch = batch.to(device)
+                for nl_name in nl_names:
+                    prior_builder = sample_nl_name2prior_builder[nl_name]
+                    prior_builder.accumulate_statistics(nl_name, batch)
+            
+            with open(sample_fnout, "wb") as f:
+                pck.dump(sample_prior_builders, f)
+            
+            continue # does not save accumulated statistics if sample statistics saved
 
         for batch in tqdm(batch_list, f"molecule name: {samples.name}", leave=False):
             batch = batch.to(device)
