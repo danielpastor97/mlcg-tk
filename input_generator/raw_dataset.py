@@ -215,21 +215,31 @@ class SampleCollection:
         # proteins with multiple chains will have multiple N- and C-termini
         self.N_term = N_term
         self.C_term = C_term
-        if N_term != None:
+
+        chains = df_cg.chainID.unique()
+        if N_term is not None:
             if "N_term" not in self.embedding_dict:
                 self.embedding_dict["N_term"] = max(self.embedding_dict.values()) + 1
-            N_term_atom = df_cg.loc[
-                (df_cg["resSeq"] == df_cg["resSeq"].min()) & (df_cg["name"] == N_term)
-            ].index
+            N_term_atom = []
+            for chain in chains:
+                chain_filter = df_cg["chainID"]==chain
+                chain_resseq_min = df_cg[chain_filter]["resSeq"].min()
+                N_term_atom.extend(df_cg.loc[
+                    (df_cg["resSeq"] == chain_resseq_min) & (df_cg["name"] == N_term) & chain_filter
+                ].index.to_list())
             for idx in N_term_atom:
                 self.cg_dataframe.at[idx, "type"] = self.embedding_dict["N_term"]
 
-        if C_term != None:
+        if C_term is not None:
             if "C_term" not in self.embedding_dict:
                 self.embedding_dict["C_term"] = max(self.embedding_dict.values()) + 1
-            C_term_atom = df_cg.loc[
-                (df_cg["resSeq"] == df_cg["resSeq"].max()) & (df_cg["name"] == C_term)
-            ].index
+            C_term_atom = []
+            for chain in chains:
+                chain_filter = df_cg["chainID"]==chain
+                chain_resseq_max = df_cg[chain_filter]["resSeq"].max()
+                C_term_atom.extend(df_cg.loc[
+                    (df_cg["resSeq"] == chain_resseq_max) & (df_cg["name"] == C_term) & chain_filter
+                ].index.to_list())
             for idx in C_term_atom:
                 self.cg_dataframe.at[idx, "type"] = self.embedding_dict["C_term"]
 
