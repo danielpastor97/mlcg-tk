@@ -176,19 +176,25 @@ def get_terminal_atoms(
                 cg_dataframe.loc[cg_dataframe.chainID == chain].index.to_list()
             )
 
-    first_res, last_res = cg_dataframe["resSeq"].min(), cg_dataframe["resSeq"].max()
-
     n_term_atoms = []
     c_term_atoms = []
+
     for chain in chains:
-        chain_filter = cg_dataframe["chainID"]==chain
-        first_res_chain, last_res_chain = cg_dataframe[chain_filter]["resSeq"].min(), cg_dataframe[chain_filter]["resSeq"].max()
-        n_term_atoms.extend(cg_dataframe.loc[
-            (cg_dataframe["resSeq"] == first_res_chain) & chain_filter
-        ].index.to_list())
-        c_term_atoms.extend(cg_dataframe.loc[
-            (cg_dataframe["resSeq"] == last_res_chain) & chain_filter
-        ].index.to_list())
+        chain_filter = cg_dataframe["chainID"] == chain
+        first_res_chain, last_res_chain = (
+            cg_dataframe[chain_filter]["resSeq"].min(),
+            cg_dataframe[chain_filter]["resSeq"].max(),
+        )
+        n_term_atoms.extend(
+            cg_dataframe.loc[
+                (cg_dataframe["resSeq"] == first_res_chain) & chain_filter
+            ].index.to_list()
+        )
+        c_term_atoms.extend(
+            cg_dataframe.loc[
+                (cg_dataframe["resSeq"] == last_res_chain) & chain_filter
+            ].index.to_list()
+        )
 
     prior_builder.n_term_atoms = [a for a in n_term_atoms if a not in monopeptide_atoms]
     prior_builder.c_term_atoms = [a for a in c_term_atoms if a not in monopeptide_atoms]
@@ -196,21 +202,32 @@ def get_terminal_atoms(
     N_term_name = "N" if N_term is None else N_term
     C_term_name = "C" if C_term is None else C_term
 
-    n_atoms = []
-    c_atoms = []
+    n_term_name_atoms = []
+    c_term_name_atoms = []
     for chain in chains:
-        chain_filter = cg_dataframe["chainID"]==chain
-        first_res_chain, last_res_chain = cg_dataframe[chain_filter]["resSeq"].min(), cg_dataframe[chain_filter]["resSeq"].max()
-        n_atoms.extend(cg_dataframe.loc[
-            (cg_dataframe["resSeq"] == first_res) & (cg_dataframe["name"] == N_term_name) & chain_filter
-        ].index.to_list())
+        chain_filter = cg_dataframe["chainID"] == chain
+        first_res_chain, last_res_chain = (
+            cg_dataframe[chain_filter]["resSeq"].min(),
+            cg_dataframe[chain_filter]["resSeq"].max(),
+        )
+        n_term_name_atoms.extend(
+            cg_dataframe.loc[
+                (cg_dataframe["resSeq"] == first_res_chain)
+                & (cg_dataframe["name"] == N_term_name)
+                & chain_filter
+            ].index.to_list()
+        )
 
-        c_atoms.extend(cg_dataframe.loc[
-                (cg_dataframe["resSeq"] == last_res) & (cg_dataframe["name"] == C_term_name) & chain_filter
-            ].index.to_list())
-    
-    prior_builder.n_atoms = n_atoms
-    prior_builder.c_atoms = c_atoms
+        c_term_name_atoms.extend(
+            cg_dataframe.loc[
+                (cg_dataframe["resSeq"] == last_res_chain)
+                & (cg_dataframe["name"] == C_term_name)
+                & chain_filter
+            ].index.to_list()
+        )
+
+    prior_builder.n_atoms = n_term_name_atoms
+    prior_builder.c_atoms = c_term_name_atoms
 
     return prior_builder
 
