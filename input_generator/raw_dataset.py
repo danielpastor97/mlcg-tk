@@ -180,7 +180,19 @@ class SampleCollection:
 
         cg_df.index = [i for i in range(len(cg_df.index))]
         cg_df.serial = [i + 1 for i in range(len(cg_df.index))]
-        cg_df.resSeq = [cg_df.resSeq[i] + cg_df.value_counts("chainID")[0:cg_df.chainID[i]].sum() for i in range(len(cg_df.resSeq))]
+        #
+        # to avoid a bug  related to the mdtraj convertion of the
+        # topology dataframe back into a md.Topology object when dealing
+        # with homo-mono-dimers, we need to shift the resseq so that
+        # each chain has different resseq numbers.
+        #
+        # See https://github.com/ClementiGroup/mlcg-playground/pull/9
+        # for more details
+        #
+        cg_df.resSeq = [
+            cg_df.resSeq[i] + cg_df.value_counts("chainID")[0 : cg_df.chainID[i]].sum()
+            for i in range(len(cg_df.resSeq))
+        ]
         self.cg_dataframe = cg_df
 
         cg_map = np.zeros((len(cg_atom_idx), self.input_traj.n_atoms))
@@ -215,21 +227,41 @@ class SampleCollection:
         # proteins with multiple chains will have multiple N- and C-termini
         self.N_term = N_term
         self.C_term = C_term
-        if N_term != None:
+
+        chains = df_cg.chainID.unique()
+        if N_term is not None:
             if "N_term" not in self.embedding_dict:
                 self.embedding_dict["N_term"] = max(self.embedding_dict.values()) + 1
-            N_term_atom = df_cg.loc[
-                (df_cg["resSeq"] == df_cg["resSeq"].min()) & (df_cg["name"] == N_term)
-            ].index
+            N_term_atom = []
+            # as the search for N- and C- is based on resseq, we need to proceed
+            # chain by chain
+            for chain in chains:
+                chain_filter = df_cg["chainID"] == chain
+                chain_resseq_min = df_cg[chain_filter]["resSeq"].min()
+                N_term_atom.extend(
+                    df_cg.loc[
+                        (df_cg["resSeq"] == chain_resseq_min)
+                        & (df_cg["name"] == N_term)
+                        & chain_filter
+                    ].index.to_list()
+                )
             for idx in N_term_atom:
                 self.cg_dataframe.at[idx, "type"] = self.embedding_dict["N_term"]
 
-        if C_term != None:
+        if C_term is not None:
             if "C_term" not in self.embedding_dict:
                 self.embedding_dict["C_term"] = max(self.embedding_dict.values()) + 1
-            C_term_atom = df_cg.loc[
-                (df_cg["resSeq"] == df_cg["resSeq"].max()) & (df_cg["name"] == C_term)
-            ].index
+            C_term_atom = []
+            for chain in chains:
+                chain_filter = df_cg["chainID"] == chain
+                chain_resseq_max = df_cg[chain_filter]["resSeq"].max()
+                C_term_atom.extend(
+                    df_cg.loc[
+                        (df_cg["resSeq"] == chain_resseq_max)
+                        & (df_cg["name"] == C_term)
+                        & chain_filter
+                    ].index.to_list()
+                )
             for idx in C_term_atom:
                 self.cg_dataframe.at[idx, "type"] = self.embedding_dict["C_term"]
 

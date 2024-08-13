@@ -27,8 +27,8 @@ def check_graph_distance(
     This covers the case when the nodes are in different connected components before hand.
     to save computation time.
     """
-    con_1 = [i for i,comp in enumerate(conn_comp) if node_1 in comp][0]
-    con_2 = [i for i,comp in enumerate(conn_comp) if node_2 in comp][0]
+    con_1 = [i for i, comp in enumerate(conn_comp) if node_1 in comp][0]
+    con_2 = [i for i, comp in enumerate(conn_comp) if node_2 in comp][0]
     if con_1 == con_2:
         shortest_path = bidirectional_shortest_path(graph, node_1, node_2)
         dist = len(shortest_path)
@@ -216,7 +216,7 @@ class Non_Bonded:
         ).numpy()
         conn_mat = get_connectivity_matrix(mlcg_top).numpy()
         graph = nx.Graph(conn_mat)
-        conn_comps =  list(nx.connected_components(graph))
+        conn_comps = list(nx.connected_components(graph))
         pairs_parsed = np.array(
             [
                 p
@@ -230,7 +230,7 @@ class Non_Bonded:
                 )
                 and (
                     graph.has_edge(p[0], p[1]) == False
-                    and check_graph_distance(graph, conn_comps, p[0], p[1],min_pair)
+                    and check_graph_distance(graph, conn_comps, p[0], p[1], min_pair)
                 )
                 and not np.all(bond_edges == p[:, None], axis=0).any()
                 and not np.all(angle_edges[[0, 2], :] == p[:, None], axis=0).any()
