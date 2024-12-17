@@ -1,9 +1,0 @@
-dataset_name: CATH
-tag: "cath_"
-save_dir: /net/scratch-sheldon/group/ag-clementi/mlcg_training_data/ 
-stride: 50
-batch_size: 500
-device: cpu
-save_figs: false
-embedding_map: input_generator.CGEmbeddingMapFiveBead
-save_sample_statistics: true # remove this if accumulating statistics over entire dataset

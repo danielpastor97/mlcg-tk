@@ -35,7 +35,6 @@ def process_sim_input(
     embedding_map: CGEmbeddingMap,
     embedding_func: Callable,
     skip_residues: List[str],
-    use_terminal_embeddings: bool,
     copies: int,
     prior_tag: str,
     prior_builders: List[PriorBuilder],
@@ -50,12 +49,12 @@ def process_sim_input(
         Name given to specific dataset
     raw_data_dir : str
         Path to location of input structures
-    pdb_fns : str
-        List of pdb filenames from which input will be generated
     save_dir : str
         Path to directory in which output will be saved
     tag : str
         Label given to all output files produced from dataset
+    pdb_fns : str
+        List of pdb filenames from which input will be generated
     cg_atoms : List[str]
         List of atom names to preserve in coarse-grained resolution
     embedding_map : CGEmbeddingMap
@@ -64,11 +63,14 @@ def process_sim_input(
         Function which will be used to apply CG mapping
     skip_residues : List[str]
         List of residues to skip, can be None
-    use_terminal_embeddings : bool
-        Whether separate embedding types should be assigned to terminal atoms
-    cg_mapping_strategy : str
-        Strategy to use for coordinate and force mappings;
-        currently only "slice_aggregate" and "slice_optimize" are implemented
+    copies : int
+        Copies that will be produced of each structure listing in pdb_fns
+    prior_tag : str
+        String identifying the specific combination of prior terms
+    prior_builders : List[PriorBuilder]
+        List of PriorBuilder objects and their corresponding parameters
+    mass_scale : str
+        Optional scaling factor applied to atomic masses
     """
     cg_coord_list = []
     cg_type_list = []
@@ -88,12 +90,6 @@ def process_sim_input(
             embedding_dict=embedding_map,
             skip_residues=skip_residues,
         )
-
-        if use_terminal_embeddings:
-            # TODO: fix usage add_terminal_embeddings wrt inputs
-            samples.add_terminal_embeddings(
-                N_term=sub_data_dict["N_term"], C_term=sub_data_dict["C_term"]
-            )
 
         cg_trajs = samples.input_traj.atom_slice(samples.cg_atom_indices)
         cg_masses = (

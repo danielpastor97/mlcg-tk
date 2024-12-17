@@ -31,7 +31,6 @@ def process_raw_dataset(
     embedding_map: CGEmbeddingMap,
     embedding_func: Callable,
     skip_residues: List[str],
-    use_terminal_embeddings: bool,
     cg_mapping_strategy: str,
 ):
     """
@@ -62,8 +61,6 @@ def process_raw_dataset(
         Function which will be used to apply CG mapping
     skip_residues : List[str]
         List of residues to skip, can be None
-    use_terminal_embeddings : bool
-        Whether separate embedding types should be assigned to terminal atoms
     cg_mapping_strategy : str
         Strategy to use for coordinate and force mappings;
         currently only "slice_aggregate" and "slice_optimize" are implemented
@@ -85,12 +82,6 @@ def process_raw_dataset(
             embedding_dict=embedding_map,
             skip_residues=skip_residues,
         )
-
-        if use_terminal_embeddings:
-            # TODO: fix usage add_terminal_embeddings wrt inputs
-            samples.add_terminal_embeddings(
-                N_term=sub_data_dict["N_term"], C_term=sub_data_dict["C_term"]
-            )
 
         aa_coords, aa_forces = sample_loader.load_coords_forces(
             raw_data_dir, samples.name
@@ -118,9 +109,10 @@ def build_neighborlists(
     embedding_map: CGEmbeddingMap,
     embedding_func: Callable,
     skip_residues: List[str],
-    use_terminal_embeddings: bool,
     prior_tag: str,
     prior_builders: List[PriorBuilder],
+    raw_data_dir: Union[str, None] = None,
+    cg_mapping_strategy: Union[str, None] = None,
 ):
     """
     Generates neighbour lists for all samples in dataset using prior term information
@@ -147,8 +139,6 @@ def build_neighborlists(
         Function which will be used to apply CG mapping
     skip_residues : List[str]
         List of residues to skip, can be None
-    use_terminal_embeddings : bool
-        Whether separate embedding types should be assigned to terminal atoms
     prior_tag : str
         String identifying the specific combination of prior terms
     prior_builders : List[PriorBuilder]
@@ -166,12 +156,6 @@ def build_neighborlists(
             embedding_dict=embedding_map,
             skip_residues=skip_residues,
         )
-
-        if use_terminal_embeddings:
-            # TODO: fix usage add_terminal_embeddings wrt inputs
-            samples.add_terminal_embeddings(
-                N_term=sub_data_dict["N_term"], C_term=sub_data_dict["C_term"]
-            )
 
         prior_nls = samples.get_prior_nls(
             prior_builders, save_nls=True, save_dir=save_dir, prior_tag=prior_tag

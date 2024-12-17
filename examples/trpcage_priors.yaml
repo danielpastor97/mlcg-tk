@@ -23,6 +23,8 @@ prior_builders:
       name: non_bonded
       min_pair: 6
       res_exclusion: 1
+      percentile: 0
+      cutoff: 6
       separate_termini: false
       nl_builder: input_generator.Non_Bonded
       prior_fit_fn: input_generator.fit_repulsion_from_values

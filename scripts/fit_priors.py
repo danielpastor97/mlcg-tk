@@ -70,7 +70,6 @@ def compute_statistics(
     save_figs: bool
         Whether to plot histograms of computed statistics
     """
-    fnout = osp.join(save_dir, f"{prior_tag}_prior_builders.pck")
 
     all_nl_names = set()
     nl_name2prior_builder = {}
@@ -92,14 +91,14 @@ def compute_statistics(
             all_nl_names
         ), f"some of the NL names '{nl_names}' in {dataset_name}:{samples.name} have not been registered in the nl_builder '{all_nl_names}'"
 
-        if save_sample_statistics == True:
+        if save_sample_statistics:
             sample_fnout = osp.join(save_dir, f"{samples.tag}{samples.name}_{prior_tag}_prior_builders.pck")
             sample_prior_builders = [
                 deepcopy(prior_builder) for prior_builder in prior_builders
             ]
 
             sample_nl_name2prior_builder = {}
-            for prior_builder in sample_prior_builders: # clears any existing statistics from builders
+            for prior_builder in sample_prior_builders: 
                 for nl_name in prior_builder.nl_builder.nl_names:
                     if nl_name in prior_builder.histograms.data.keys() and nl_name not in nl_names: 
                         prior_builder.histograms.data.pop(nl_name)
@@ -134,9 +133,12 @@ def compute_statistics(
                     dpi=300,
                     bbox_inches="tight",
                 )
-
-    with open(fnout, "wb") as f:
-        pck.dump(prior_builders, f)
+    
+    if not save_sample_statistics:
+        # cummulative statistics are only saved if individual statistics were not saved
+        fnout = osp.join(save_dir, f"{tag}{prior_tag}_prior_builders.pck")
+        with open(fnout, "wb") as f:
+            pck.dump(prior_builders, f)
 
 
 def fit_priors(

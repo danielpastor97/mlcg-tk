@@ -1,9 +1,10 @@
-dataset_name: CompSNARE
-raw_data_dir: /import/a12/users/aguljas/complexin/
-save_dir: /import/a12/users/aguljas/complexin/
+dataset_name: TRPCAGE
+raw_data_dir: /scratch/aguljas/mlcg-playground/examples/
+save_dir: /scratch/aguljas/h5_datasets/starting_configs_allproteins/
 tag: ""
 pdb_fns: 
-- complexin_snare_cg.pdb
+- trpcage_folded.pdb
+- trpcage_unfolded.pdb
 cg_atoms:
 - N
 - CA
@@ -16,5 +17,4 @@ skip_residues:
 - ACE
 - NME
 use_terminal_embeddings: false
-cg_mapping_strategy: slice_aggregate
-copies: 1
+copies: 35

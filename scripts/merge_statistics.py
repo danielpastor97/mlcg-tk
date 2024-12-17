@@ -9,17 +9,40 @@ import pickle as pkl
 from input_generator.prior_gen import PriorBuilder
 
 from jsonargparse import CLI
-from typing import List
+from typing import List, Optional
 
 def merge_statistics(
     save_dir: str,
     prior_tag: str,
     prior_builders: List[PriorBuilder],
-    stats_fns: List[str]
+    names: List[str],
+    tag: Optional[str] = None
 ):
+    """
+    Merges statistics computed for separate datasets or for individual samples of the same dataset.
+
+    Parameters
+    ----------
+    save_dir : str
+        Path to directory in which output will be saved
+    names : List[str]
+        List of either sample names or dataset names for which statistics will be merged
+    prior_tag : str
+        String identifying the specific combination of prior terms
+    prior_builders : List[PriorBuilder]
+        List of PriorBuilder objects and their corresponding parameters
+    tag : str
+        Optional label included to specify dataset for which sample statistics will be merged
+    """
     all_stats = []
-    for fn in stats_fns:
-        with open(fn, "rb") as ifile:
+    for name in names:
+        if tag != None:
+            stats_fn = osp.join(save_dir, f"{tag}_{name}_{prior_tag}_prior_builders.pck")
+            fnout =  osp.join(save_dir, f"{tag}{prior_tag}_prior_builders.pck")
+        else:
+            stats_fn = osp.join(save_dir, f"{name}_{prior_tag}_prior_builders.pck")
+            fnout =  osp.join(save_dir, f"{prior_tag}_prior_builders.pck")
+        with open(stats_fn, "rb") as ifile:
             stats = pkl.load(ifile)
         all_stats.append(stats)
 
@@ -36,8 +59,8 @@ def merge_statistics(
                 hists = builder.histograms[nl_name]
                 for k, hist in hists.items():
                     combined_builder.histograms.data[nl_name][k] += hist
-
-    with open(f"{save_dir}{prior_tag}_prior_builders.pck", "wb") as ofile:
+    
+    with open(fnout, "wb") as ofile:
         pkl.dump(prior_builders, ofile)
 
 
