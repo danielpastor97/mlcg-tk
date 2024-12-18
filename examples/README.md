@@ -60,7 +60,19 @@ python ../scripts/produce_delta_forces.py produce_delta_forces --config trpcage_
 Here, make sure to specify `cuda` for the `device` option in the configuration file.
 Note that depending on the GPU being used and its available memory, it may be necessary to adjust the `batch_size`.
 
-#### 4) Generate simulation input
+#### 4) Package Training Data
+
+Command:
+
+`python ../scripts/package_training_data.py package_training_data --config trpcage_packaging.yaml`
+
+Once all training data has been produced, these data must be packaged in a form that can be passed to the MLCG library for model training. In this step, CG coordinates, delta forces, and embeddings are loaded for all provided sample names in a raw dataset and saved as an HDF5 file. In the same step, molecules are split into training and validation sets and a saved in a partition file, which also stores information about the batch sizes to use for training and any striding that should be applied. In the case that multiple dataset are used to train a model, these can be merged into combined HDF5 and partition files using the following:
+
+`python ../scripts/package_training_data.py combine_datasets --dataset_names '[dataset_1, dataset_2, etc]' --save_dir /path/to/saved/files/ --force_tag tag`
+
+The optional force tag specifies a label given to produced delta forces and saved packaged data.
+
+#### 5) Generate simulation input
 
 Command:
 

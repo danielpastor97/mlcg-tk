@@ -525,6 +525,28 @@ class SampleCollection:
             cg_coords, cg_forces, cg_embeds, cg_prior_nls, batch_size, stride
         )
         return batch_list
+    
+    def load_training_inputs(self, training_data_dir: str, force_tag: str = "") -> Tuple:
+        """
+        Loads all cg data produced by `save_cg_output` and `get_prior_nls`
+
+        Parameters
+        ----------
+        training_data:
+            Location of saved cg data including delta forces
+        force_tag:
+            String identifying the produced delta forces
+
+        Returns
+        -------
+        Tuple of np.ndarrays containing coarse grained coordinates, delta forces, and embeddings,
+        """
+        save_templ = os.path.join(training_data_dir, f"{self.tag}{self.name}")
+        cg_coords = np.load(f"{save_templ}_cg_coords.npy")
+        cg_forces = np.load(f"{save_templ}_{force_tag}_delta_forces.npy")
+        cg_embeds = np.load(f"{save_templ}_cg_embeds.npy")
+        
+        return cg_coords, cg_forces, cg_embeds
 
 
 class RawDataset:
