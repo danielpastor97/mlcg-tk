@@ -1,7 +1,7 @@
 dataset_name: TRPCAGE
-raw_data_dir: /scratch/aguljas/mlcg-playground/examples/
-save_dir: /scratch/aguljas/h5_datasets/starting_configs_allproteins/
-tag: ""
+raw_data_dir: /path/to/input/structures/directory/
+save_dir: /path/to/output/directory/
+tag: model_tag
 pdb_fns: 
 - trpcage_folded.pdb
 - trpcage_unfolded.pdb

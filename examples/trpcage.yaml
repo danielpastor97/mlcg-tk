@@ -2,9 +2,9 @@ dataset_name: 2JOF
 names: [2JOF]
 sample_loader: input_generator.Trpcage_loader
 tag: ""
-raw_data_dir: /local_scratch2/musil/make_datasets/data/trpcage
-save_dir: /local_scratch2/musil/make_datasets/datasets/input_generator_trpcage/test
-pdb_template_fn: /local_scratch2/musil/make_datasets/data/trpcage/trpcage_50ns_0/structure.pdb
+raw_data_dir: /path/to/raw/data/
+save_dir:  /path/to/output/directory/
+pdb_template_fn:  /path/to/structures/directory/structure.pdb
 cg_atoms:
 - N
 - CA

@@ -1,4 +1,4 @@
-prior_tag: cgschnet
+prior_tag: prior_tag
 prior_builders:
   - class_path: input_generator.Bonds
     init_args:

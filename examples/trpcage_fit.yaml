@@ -1,5 +1,5 @@
-save_dir: /local_scratch2/musil/make_datasets/datasets/input_generator_trpcage/test
-prior_tag: cgschnet
+save_dir: /path/to/saved/statistics/
+prior_tag: prior_tag
 embedding_map: input_generator.CGEmbeddingMapFiveBead
 temperature: 350
 
