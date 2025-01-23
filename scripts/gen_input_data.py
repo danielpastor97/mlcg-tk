@@ -32,6 +32,7 @@ def process_raw_dataset(
     embedding_func: Callable,
     skip_residues: List[str],
     cg_mapping_strategy: str,
+    stride: int = 1,
 ):
     """
     Applies coarse-grained mapping to coordinates and forces using input sample
@@ -64,11 +65,8 @@ def process_raw_dataset(
     cg_mapping_strategy : str
         Strategy to use for coordinate and force mappings;
         currently only "slice_aggregate" and "slice_optimize" are implemented
-    prior_tag : str
-        String identifying the specific combination of prior terms
-    prior_builders : List[PriorBuilder]
-        List of PriorBuilder objects and their corresponding parameters
-
+    stride : int
+        Interval by which to stride loaded data
     """
     dataset = RawDataset(dataset_name, names, tag)
     for samples in tqdm(dataset, f"Processing CG data for {dataset_name} dataset..."):
@@ -84,7 +82,7 @@ def process_raw_dataset(
         )
 
         aa_coords, aa_forces = sample_loader.load_coords_forces(
-            raw_data_dir, samples.name
+            raw_data_dir, samples.name, stride=stride
         )
 
         cg_coords, cg_forces = samples.process_coords_forces(
@@ -113,6 +111,7 @@ def build_neighborlists(
     prior_builders: List[PriorBuilder],
     raw_data_dir: Union[str, None] = None,
     cg_mapping_strategy: Union[str, None] = None,
+    stride: int = 1,
 ):
     """
     Generates neighbour lists for all samples in dataset using prior term information

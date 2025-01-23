@@ -29,6 +29,39 @@ def with_attrs(**func_attrs):
     return attr_decorator
 
 
+def get_output_tag(
+        tag_label: Union[List,str], placement: str="before"
+):
+    """
+    Helper function for combining output tag labels neatly.
+    Fixes issues of connecting/preceding '_' being included in some labels but not others.
+
+    Parameters
+    ----------
+    tag_label : List, str
+        Either a list of labels to include (ex: for datasets, delta force computation) or individual label item.
+    placement : str
+        Placement of tag in output name. One of: 'before', 'after'.
+    """
+
+    if isinstance(tag_label, str):
+        if tag_label in [None, "", " "]:
+            return ""
+        else:
+            return f"_{tag_label.strip('_')}"
+    elif isinstance(tag_label, List):
+        for l in tag_label:
+            if l in [None, "", " "]:
+                tag_label.remove(l)
+        joined_label = "_".join([l.strip('_') for l in tag_label])
+        if placement == "before":
+            return f"{joined_label}_"
+        elif placement == "after":
+            return f"_{joined_label}"
+        else:
+            raise ValueError("Please specify placement from: 'before', 'after'.")
+
+
 def map_cg_topology(
     atom_df: pd.DataFrame,
     cg_atoms: List[str],

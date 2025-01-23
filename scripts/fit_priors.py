@@ -9,6 +9,7 @@ from input_generator.embedding_maps import CGEmbeddingMap
 from input_generator.prior_gen import PriorBuilder
 from input_generator.prior_fit import HistogramsNL
 from input_generator.prior_fit.fit_potentials import fit_potentials
+from input_generator.utils import get_output_tag
 from tqdm import tqdm
 import torch
 from time import ctime
@@ -39,6 +40,7 @@ def compute_statistics(
     device: str = "cpu",
     save_figs: bool = True,
     save_sample_statistics: bool = False,
+    weights_template_fn: Optional[str] = None,
 ):
     """
     Computes structural features and accumulates statistics on dataset samples
@@ -69,6 +71,8 @@ def compute_statistics(
         If true, will save individual list of prior builders with accumulated statistics of one molecule
     save_figs: bool
         Whether to plot histograms of computed statistics
+    weights_template_fn : str
+        Template file location of weights to use for accumulating statistics
     """
 
     all_nl_names = set()
@@ -82,8 +86,11 @@ def compute_statistics(
     for samples in tqdm(
         dataset, f"Compute histograms of CG data for {dataset_name} dataset..."
     ):
+        if weights_template_fn != None:
+            weights = np.load(weights_template_fn % samples.name)
+            
         batch_list = samples.load_cg_output_into_batches(
-            save_dir, prior_tag, batch_size, stride
+            save_dir, prior_tag, batch_size, stride, weights=weights,
         )
         nl_names = set(batch_list[0].neighbor_list.keys())
 
@@ -92,7 +99,7 @@ def compute_statistics(
         ), f"some of the NL names '{nl_names}' in {dataset_name}:{samples.name} have not been registered in the nl_builder '{all_nl_names}'"
 
         if save_sample_statistics:
-            sample_fnout = osp.join(save_dir, f"{samples.tag}{samples.name}_{prior_tag}_prior_builders.pck")
+            sample_fnout = osp.join(save_dir, f"{get_output_tag([samples.tag, samples.name, prior_tag], placement='before')}prior_builders.pck")
             sample_prior_builders = [
                 deepcopy(prior_builder) for prior_builder in prior_builders
             ]
@@ -136,7 +143,7 @@ def compute_statistics(
     
     if not save_sample_statistics:
         # cummulative statistics are only saved if individual statistics were not saved
-        fnout = osp.join(save_dir, f"{tag}{prior_tag}_prior_builders.pck")
+        fnout = osp.join(save_dir, f"{get_output_tag([samples.tag, prior_tag], placement='before')}prior_builders.pck")
         with open(fnout, "wb") as f:
             pck.dump(prior_builders, f)
 

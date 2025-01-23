@@ -12,6 +12,7 @@ from mlcg.data.atomic_data import AtomicData
 from mlcg.datasets.utils import remove_baseline_forces
 
 from input_generator.raw_dataset import *
+from input_generator.utils import get_output_tag
 
 from tqdm import tqdm
 
@@ -19,7 +20,7 @@ from time import ctime
 
 from typing import Dict, List, Union, Callable, Optional
 from jsonargparse import CLI
-
+from repulsion_fitted import Repulsion
 
 def produce_delta_forces(
     dataset_name: str,
@@ -30,7 +31,7 @@ def produce_delta_forces(
     prior_fn: str,
     device: str,
     batch_size: int,
-    model_tag: Optional[str] = None,
+    force_tag: Optional[str] = None,
 ):
     """
     Removes prior energy terms from input forces to produce delta force input
@@ -54,8 +55,8 @@ def produce_delta_forces(
         Device on which to run delta force calculations
     batch_size : int
         Number of frames to take per batch
-    model_tag: str
-        Optional tag to identify input for a particular model
+    force_tag: str
+        Optional tag to identify input for a particular run of delta force calculation
     """
 
     prior_model = torch.load(open(prior_fn, "rb")).models.to(device)
@@ -91,10 +92,7 @@ def produce_delta_forces(
                     delta_force = sub_data_list[j].forces.detach().cpu()
                     delta_forces.append(delta_force.numpy())
         
-        if model_tag != None:
-            fnout = os.path.join(save_dir, f"{tag}{samples.name}_{prior_tag}_delta_forces.npy")
-        else:
-            fnout = os.path.join(save_dir, f"{tag}{samples.name}_{prior_tag}_{model_tag}_delta_forces.npy")
+        fnout = os.path.join(save_dir, f"{get_output_tag([tag, samples.name, prior_tag, force_tag], placement='before')}delta_forces.npy")
         np.save(
             fnout, np.concatenate(delta_forces, axis=0).reshape(*coords.shape),
         )

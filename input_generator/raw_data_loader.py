@@ -2,12 +2,11 @@ import numpy as np
 import os
 from natsort import natsorted
 from glob import glob
-from pathlib import Path
 import h5py
 from typing import Tuple
 import mdtraj as md
 import warnings
-
+from pathlib import Path
 
 class DatasetLoader:
     pass
@@ -38,7 +37,7 @@ class CATH_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, base_dir: str, name: str
+        self, base_dir: str, name: str, stride: int = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given CATH domain name, returns np.ndarray's of its coordinates and forces at
@@ -50,6 +49,8 @@ class CATH_loader(DatasetLoader):
             Path to coordinate and force files
         name:
             Name of input sample
+        stride : int
+            Interval by which to stride loaded data
         """
         # return sorted(name, key=alphanum_key)
         outputs_fns = natsorted(glob(os.path.join(base_dir, f"output/{name}/*_part_*")))
@@ -65,10 +66,10 @@ class CATH_loader(DatasetLoader):
             assert coord.shape == force.shape
             aa_coord_list.append(coord)
             aa_force_list.append(force)
-        aa_coords = np.concatenate(aa_coord_list)
-        aa_forces = np.concatenate(aa_force_list)
+        aa_coords = np.concatenate(aa_coord_list)[::stride]
+        aa_forces = np.concatenate(aa_force_list)[::stride]
         return aa_coords, aa_forces
-    
+
 
 class DIMER_loader(DatasetLoader):
     """
@@ -95,7 +96,7 @@ class DIMER_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, base_dir: str, name: str
+        self, base_dir: str, name: str, stride: int = 1
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given DIMER pair name, returns np.ndarray's of its coordinates and forces at
@@ -107,10 +108,12 @@ class DIMER_loader(DatasetLoader):
             Path to coordinate and force files
         name:
             Name of input sample
+        stride : int
+            Interval by which to stride loaded data
         """
         with h5py.File(os.path.join(base_dir, "allatom.h5"), "r") as data:
-            coord = data["MINI"][name]["aa_coords"][:]
-            force = data["MINI"][name]["aa_forces"][:]
+            coord = data["MINI"][name]["aa_coords"][:][::stride]
+            force = data["MINI"][name]["aa_forces"][:][::stride]
 
         # convert to kcal/mol/angstrom and angstrom
         # from kJ/mol/nm and nm
@@ -222,7 +225,7 @@ class Cln_loader(DatasetLoader):
         return aa_coords, aa_forces
 
 
-class BBA_loader(DatasetLoader):
+class Villin_loader(DatasetLoader):
     def get_traj_top(self, name: str, pdb_fn: str):
         pdb = md.load(pdb_fn.format(name))
         aa_traj = pdb.atom_slice(
@@ -230,31 +233,32 @@ class BBA_loader(DatasetLoader):
         )
         top_dataframe = aa_traj.topology.to_dataframe()[0]
         return aa_traj, top_dataframe
-
+    
     def load_coords_forces(
-        self, base_dir: str, name: str
+            self, base_dir: str, name: str
     ) -> Tuple[np.ndarray, np.ndarray]:
-        traj_name_pat = "bba_coor_folding-bba_"
-        coord_pattern = Path(base_dir) / "coords_nowater" / f"{traj_name_pat}*.npy"
-        coords_fns = natsorted(
-            glob(str(coord_pattern))
-        )
+        coords_fns = sorted(
+            glob(
+                os.path.join(base_dir, f"{name}/*_coords.npy")
+            )
+        ) # combining all trajectories from single starting structure
 
-        forces_fns = [
-            fn.replace("coords_nowater", "forces_nowater").replace("coor","force")
-            for fn in coords_fns
-        ]
+        forces_fns = sorted(
+            glob(
+                os.path.join(base_dir, f"{name}/*_forces.npy")
+            )
+        )
 
         aa_coord_list = []
         aa_force_list = []
-        # load the files, checking against the mol dictionary
-        for cfn, ffn in zip(coords_fns, forces_fns):
-            force = np.load(ffn)  # in AA
-            coord = np.load(cfn)  # in kcal/mol/AA
+        for c, f in zip(coords_fns, forces_fns):
+            coords = np.load(c)
+            forces = np.load(f)
+            assert coords.shape == forces.shape
 
-            assert coord.shape == force.shape
-            aa_coord_list.append(coord)
-            aa_force_list.append(force)
+            aa_coord_list.append(coords)
+            aa_force_list.append(forces)
+        
         aa_coords = np.concatenate(aa_coord_list)
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces

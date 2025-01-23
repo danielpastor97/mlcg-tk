@@ -7,6 +7,7 @@ sys.path.insert(0, osp.join(SCRIPT_DIR, "../"))
 import pickle as pkl
 
 from input_generator.prior_gen import PriorBuilder
+from input_generator.utils import get_output_tag
 
 from jsonargparse import CLI
 from typing import List, Optional
@@ -36,16 +37,12 @@ def merge_statistics(
     """
     all_stats = []
     for name in names:
-        if tag != None:
-            stats_fn = osp.join(save_dir, f"{tag}_{name}_{prior_tag}_prior_builders.pck")
-            fnout =  osp.join(save_dir, f"{tag}{prior_tag}_prior_builders.pck")
-        else:
-            stats_fn = osp.join(save_dir, f"{name}_{prior_tag}_prior_builders.pck")
-            fnout =  osp.join(save_dir, f"{prior_tag}_prior_builders.pck")
+        stats_fn = osp.join(save_dir, f"{get_output_tag([tag, name, prior_tag], placement='before')}prior_builders.pck")
         with open(stats_fn, "rb") as ifile:
             stats = pkl.load(ifile)
         all_stats.append(stats)
-
+    
+    fnout =  osp.join(save_dir, f"{get_output_tag([tag, prior_tag], placement='before')}prior_builders.pck")
     builder_dict = {}
     for prior_builder in prior_builders:
         builder_dict[prior_builder.name] = prior_builder

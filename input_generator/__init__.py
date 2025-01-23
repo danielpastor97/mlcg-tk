@@ -1,13 +1,9 @@
 from .raw_dataset import RawDataset, SampleCollection
 from .raw_data_loader import (
     CATH_loader,
-    CATH_ext_loader,
-    CATH_unfolded_loader,
     DIMER_loader,
-    DIMER_ext_loader,
     Trpcage_loader,
     Cln_loader,
-    BBA_loader,
     OPEP_loader,
 )
 

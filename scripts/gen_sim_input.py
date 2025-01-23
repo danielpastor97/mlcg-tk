@@ -10,6 +10,7 @@ from input_generator.embedding_maps import (
 )
 from input_generator.raw_data_loader import DatasetLoader, SimInput_loader
 from input_generator.prior_gen import Bonds, PriorBuilder
+from input_generator.utils import get_output_tag
 from tqdm import tqdm
 
 from time import ctime
@@ -124,7 +125,7 @@ def process_sim_input(
         data.neighbor_list = deepcopy(nls)
         data_list.append(data)
 
-    torch.save(data_list, f"{save_dir}{dataset_name}_configurations.pt")
+    torch.save(data_list, f"{save_dir}{get_output_tag([dataset_name, tag], placement='before')}configurations.pt")
 
 
 if __name__ == "__main__":
