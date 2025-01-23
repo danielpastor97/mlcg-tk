@@ -217,7 +217,7 @@ def add_decoy(
                 h5_id = '_delta_dataset.h5'
         for decoy_h5_file in decoy_h5_files: 
             assert os.path.dirname(decoy_h5_file) == os.path.dirname(decoy_h5_files[0]), "all h5s are not int he same directory, combining only works when h5s are in the same directory"
-        with h5py.File(f"DECOY_combined_{'_'.join(datasets)}{h5_id}", "w") as f:
+        with h5py.File(os.path.join(os.path.dirname(decoy_h5_files[0]), f"DECOY_combined_{'_'.join(datasets)}{h5_id}"), "w") as f:
             for i, h5_file in enumerate(decoy_h5_files):
                 f[datasets[i]] = h5py.ExternalLink(os.path.basename(h5_file), f"/{datasets[i]}")
             # note: h5py treats the external link as relative path from directory of the main h5py file.
