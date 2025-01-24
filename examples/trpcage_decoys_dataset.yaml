@@ -6,5 +6,4 @@ mol_name_prefix: DECOY_05
 scale: 0.5
 stride: 50
 append: true
-combine: false
 

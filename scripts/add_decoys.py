@@ -130,8 +130,6 @@ def add_decoy(
     scale: float,
     stride: Optional[int] = 50,
     append: Optional[bool] = True,
-    combine: Optional[bool] = True,
-    combined_h5_name: Optional[str] = None
 ) -> None:
     """
     Adds decoy molecules with Gaussian noise to the specified HDF5 datasets, optionally combines them into a single HDF5 file.
@@ -170,23 +168,11 @@ def add_decoy(
         If `True`, decoy molecules will be added to the datasets in the existing HDF5 files. If `False`, the HDF5 file 
         will be copied before appending the decoy molecules in the new HDF5 file.
 
-    combine: Optional[bool], default=True
-        If `True`, the  HDF5 files containing the decoys will be combined into a single new HDF5 file. The individual 
-        HDF5 files are linked using external links. 
-
-    combined_h5_name: Optional[str]
-        The name of the combined HDF5 file. If `None` and `combine=True`, the function will attempt to generate a name 
-        based on the input files. If `None` and `combine=False`, the function will not attempt to combine files.
-
     Notes:
     -----
     - The `scale` value controls the level of noise added to the decoy molecules. A larger value will result in more distorted configurations.
     - The `stride` argument helps reduce the number of frames included in the decoy molecule by selecting a subset based on 
       the specified interval. The higher the stride the less decoys are present in the dataset.
-    - If `combine=True`, the function expects all input HDF5 files to be located in the same directory. If the files are 
-      not in the same directory, an error will be raised during the combining process.
-    - The function uses the `longest_common_substring_multiple` helper function to generate a name for the combined file 
-      if `combined_h5_name` is not provided.
     """
     assert len(h5_files) == len(datasets), "this function currently cannot handle more than one dataset per h5 file"
     decoy_h5_files = []
@@ -207,21 +193,6 @@ def add_decoy(
                     scale=5.0,
                     name=f"{mol_name_prefix}_{mol}"
                 )
-    if combine:
-        if combined_h5_name is not None:
-            h5_id = combined_h5_name
-        else:
-            h5_id = longest_common_substring_multiple([os.path.basename(h) for h in h5_files])
-            if h5_id[-3:] != ".h5":
-                print("WARNING: automatic name detection didnt work, using '_delta_dataset.h5' instead")
-                h5_id = '_delta_dataset.h5'
-        for decoy_h5_file in decoy_h5_files: 
-            assert os.path.dirname(decoy_h5_file) == os.path.dirname(decoy_h5_files[0]), "all h5s are not int he same directory, combining only works when h5s are in the same directory"
-        with h5py.File(os.path.join(os.path.dirname(decoy_h5_files[0]), f"DECOY_combined_{'_'.join(datasets)}{h5_id}"), "w") as f:
-            for i, h5_file in enumerate(decoy_h5_files):
-                f[datasets[i]] = h5py.ExternalLink(os.path.basename(h5_file), f"/{datasets[i]}")
-            # note: h5py treats the external link as relative path from directory of the main h5py file.
-            # therefore the generated combined file should stay in the same folder as the otherfiles.
 
 def update_partition_file(
     partition_file: str,
