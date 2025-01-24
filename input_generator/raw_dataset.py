@@ -72,6 +72,7 @@ class CGDataBatch:
         cg_prior_nls: Dict,
         batch_size: int,
         stride: int,
+        weights: Optional[np.ndarray] = None,
         concat_forces: bool = False,
     ) -> None:
         self.batch_size = batch_size
@@ -81,6 +82,12 @@ class CGDataBatch:
         self.cg_forces = torch.from_numpy(cg_forces[::stride])
         self.cg_embeds = torch.from_numpy(cg_embeds)
         self.cg_prior_nls = cg_prior_nls
+        if isinstance(weights, np.ndarray):
+            self.weights = torch.from_numpy(weights[::stride])
+            if stride != 1:
+                self.weights = self.weights/torch.sum(self.weights)
+        else:
+            self.weights = None
 
         self.n_structure = self.cg_coords.shape[0]
         if batch_size > self.n_structure:
@@ -110,6 +117,8 @@ class CGDataBatch:
                 dd["forces"] = self.cg_forces[ii]
 
             data = AtomicData.from_points(**dd)
+            if isinstance(self.weights, torch.Tensor):
+                data.weights = self.weights[ii]
             data_list.append(data)
         datas, slices, _ = collate(
             data_list[0].__class__,
@@ -458,7 +467,7 @@ class SampleCollection:
         if save_nls:
             ofile = os.path.join(
                 kwargs["save_dir"],
-                f"{get_output_tag([self.tag, self.name], placement='before')}_prior_nls_{kwargs['prior_tag']}.pkl",
+                f"{get_output_tag([self.tag, self.name], placement='before')}prior_nls_{kwargs['prior_tag']}.pkl",
             )
             with open(ofile, "wb") as pfile:
                 pickle.dump(prior_nls, pfile)
@@ -499,6 +508,7 @@ class SampleCollection:
         prior_tag: str,
         batch_size: int,
         stride: int,
+        weights_template_fn: Optional[str],
     ):
         """
         Loads saved CG data nad splits these into batches for further processing
@@ -521,8 +531,15 @@ class SampleCollection:
         cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls = self.load_cg_output(
             save_dir, prior_tag
         )
+        #load weights if given
+        if weights_template_fn != None:
+            weights = np.load(
+                os.path.join(save_dir, weights_template_fn.format(self.name))
+                ) 
+        else:
+            weights = None
         batch_list = CGDataBatch(
-            cg_coords, cg_forces, cg_embeds, cg_prior_nls, batch_size, stride
+            cg_coords, cg_forces, cg_embeds, cg_prior_nls, batch_size, stride, weights
         )
         return batch_list
     

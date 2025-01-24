@@ -1,7 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from typing import Dict
+from typing import Dict, Optional
 from collections import defaultdict
 import numpy as np
 from copy import deepcopy
@@ -54,6 +54,7 @@ class HistogramsNL:
         values: torch.Tensor,
         atom_types: torch.Tensor,
         mapping: torch.Tensor,
+        weights: Optional[torch.Tensor],
     ) -> None:
         """
         Accumulates statistics from computed features.
@@ -70,7 +71,7 @@ class HistogramsNL:
             Tensor of atom groups for which values have been computed
         """
         hists = compute_hist(
-            values, atom_types, mapping, self.n_bins, self.bmin, self.bmax
+            values, atom_types, mapping, self.n_bins, self.bmin, self.bmax, weights,
         )
         for k, hist in hists.items():
             self.data[nl_name][k] += hist
@@ -189,6 +190,7 @@ def compute_hist(
     nbins: int,
     bmin: float,
     bmax: float,
+    weights: Optional[torch.Tensor],
 ) -> Dict:
     r"""Function for computing atom type-specific statistics for
     every combination of atom types present in a collated AtomicData
@@ -216,8 +218,13 @@ def compute_hist(
         val = values[mask]
         if len(val) == 0:
             continue
+        bins = torch.linspace(bmin, bmax, steps=nbins+1)
 
-        hist = torch.histc(val, bins=nbins, min=bmin, max=bmax)
+        if isinstance(weights, torch.Tensor):
+            n_atomgroups = int(val.shape[0] / weights.shape[0])
+            hist, _ = torch.histogram(val, bins=bins, weight=weights.tile((n_atomgroups,)))
+        else:
+            hist, _ = torch.histogram(val, bins=bins)
         kk = tensor2tuple(unique_key)
         kf = tensor2tuple(_flip_map[order](unique_key))
         histograms[kk] = hist.cpu().numpy()

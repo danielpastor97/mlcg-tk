@@ -37,6 +37,7 @@ def compute_statistics(
     prior_tag: str,
     prior_builders: List[PriorBuilder],
     embedding_map: CGEmbeddingMap,
+    statistics_tag: Optional[str] = None,
     device: str = "cpu",
     save_figs: bool = True,
     save_sample_statistics: bool = False,
@@ -65,6 +66,8 @@ def compute_statistics(
         List of PriorBuilder objects and their corresponding parameters
     embedding_map : CGEmbeddingMap
         Mapping object
+    statistics_tag : str
+        String differentiating parameters used for statistics computation
     device: str
         Device on which to run delta force calculations
     save_sample_statistics:
@@ -86,11 +89,9 @@ def compute_statistics(
     for samples in tqdm(
         dataset, f"Compute histograms of CG data for {dataset_name} dataset..."
     ):
-        if weights_template_fn != None:
-            weights = np.load(weights_template_fn % samples.name)
-            
+
         batch_list = samples.load_cg_output_into_batches(
-            save_dir, prior_tag, batch_size, stride, weights=weights,
+            save_dir, prior_tag, batch_size, stride, weights_template_fn=weights_template_fn,
         )
         nl_names = set(batch_list[0].neighbor_list.keys())
 
@@ -99,7 +100,7 @@ def compute_statistics(
         ), f"some of the NL names '{nl_names}' in {dataset_name}:{samples.name} have not been registered in the nl_builder '{all_nl_names}'"
 
         if save_sample_statistics:
-            sample_fnout = osp.join(save_dir, f"{get_output_tag([samples.tag, samples.name, prior_tag], placement='before')}prior_builders.pck")
+            sample_fnout = osp.join(save_dir, f"{get_output_tag([samples.tag, samples.name, prior_tag, statistics_tag], placement='before')}prior_builders.pck")
             sample_prior_builders = [
                 deepcopy(prior_builder) for prior_builder in prior_builders
             ]

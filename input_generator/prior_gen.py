@@ -81,7 +81,11 @@ class PriorBuilder:
         atom_types = data.atom_types
         mapping = data.neighbor_list[nl_name]["index_mapping"]
         values = self.prior_cls.compute_features(data.pos, mapping)
-        self.histograms.accumulate_statistics(nl_name, values, atom_types, mapping)
+        if hasattr(data, "weights"):
+            weights = data.weights
+        else:
+            weights = None
+        self.histograms.accumulate_statistics(nl_name, values, atom_types, mapping, weights)
 
 
 class Bonds(PriorBuilder):
