@@ -72,6 +72,20 @@ Once all training data has been produced, these data must be packaged in a form 
 
 The optional force tag specifies a label given to produced delta forces and saved packaged data.
 
+#### 4) bis Add Decoys To Training Data
+
+It is possible to add so-called decoys to the training data, distorted (unphysical) configurations with a zero delta-force label, such that the network has examples of configurations on which it should rely on the prior. 
+
+The script `add_decoys.py` enables the addition of decoys to a previously constructed HDF5 dataset. It can be used the following way to append decoys to the existing HDF5 dataset (or the config file can be modified for the script to copy the original HDF5 dataset before adding the decoys):
+
+`python ../scripts/add_decoys.py add_decoy --config trpcage_decoys_dataset.yaml`
+
+The same script can also be used to add these decoys to an existing partition file in order to incorporate them during training:
+
+`python ../scripts/add_decoys.py update_partition_file --config trpcage_decoys_partition.yaml`
+
+Note that an arbitrary number of decoys with different noise levels and strides can be appended to a dataset, only the decoys present in the partition file will effectively be taken into account for training.
+
 #### 5) Generate simulation input
 
 Command:
