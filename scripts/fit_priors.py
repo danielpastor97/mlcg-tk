@@ -20,6 +20,7 @@ from jsonargparse import CLI
 from scipy.integrate import trapezoid
 from collections import defaultdict
 from copy import deepcopy
+import warnings
 
 # import seaborn as sns
 
@@ -89,6 +90,11 @@ def compute_statistics(
     for samples in tqdm(
         dataset, f"Compute histograms of CG data for {dataset_name} dataset..."
     ):
+        if weights_template_fn != None and not osp.exists(
+                osp.join(save_dir, weights_template_fn.format(samples.name))
+                ):
+            warnings.warn(f"Could not find weights for sample {samples.name}; the file {osp.join(save_dir, weights_template_fn.format(samples.name))} does not exist. This entry will be skipped.")
+            continue
 
         batch_list = samples.load_cg_output_into_batches(
             save_dir, prior_tag, batch_size, stride, weights_template_fn=weights_template_fn,
