@@ -218,7 +218,7 @@ def compute_hist(
         val = values[mask]
         if len(val) == 0:
             continue
-        bins = torch.linspace(bmin, bmax, steps=nbins+1)
+        bins = torch.linspace(bmin, bmax, steps=nbins+1).type(val.dtype)
 
         if isinstance(weights, torch.Tensor):
             n_atomgroups = int(val.shape[0] / weights.shape[0])
