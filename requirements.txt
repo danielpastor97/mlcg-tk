@@ -1,0 +1,17 @@
+#-e git:https://github.com/noegroup/aggforce-legacy.git@1a93ef4ddafd2f8a9fc77eabfa4bdd2e2d516880#egg=aggforce
+aggforce @ git+https://github.com/noegroup/aggforce-legacy.git -e
+h5py
+jsonargparse
+matplotlib
+mdtraj
+mlcg @ git+https://github.com/ClementiGroup/mlcg.git@0.0.1 -e
+natsort
+networkx
+numpy 
+pandas
+PyYAML
+scikit-learn
+SciPy
+torch
+torch_geometric
+tqdm
