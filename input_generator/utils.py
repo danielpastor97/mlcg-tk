@@ -4,9 +4,16 @@ import numpy as np
 import mdtraj as md
 from functools import wraps
 
-from aggforce import linearmap as lm
-from aggforce import agg as ag
-from aggforce import constfinder as cf
+from aggforce import (LinearMap, 
+                    guess_pairwise_constraints, 
+                    project_forces, 
+                    constraint_aware_uni_map,
+                    qp_linear_map
+                    )
+
+# aggforce import linearmap as lm
+# aggforce import agg as ag
+# aggforce import constfinder as cf
 
 from .prior_gen import PriorBuilder
 
@@ -145,26 +152,26 @@ def slice_coord_forces(
     -------
     Coarse-grained coordinates and forces
     """
-    config_map = lm.LinearMap(cg_map)
+    config_map = LinearMap(cg_map)
     config_map_matrix = config_map.standard_matrix
     # taking only first 100 frames gives same results in ~1/15th of time
-    constraints = cf.guess_pairwise_constraints(coords[:100], threshold=5e-3)
+    constraints = guess_pairwise_constraints(coords[:100], threshold=5e-3)
     if mapping == "slice_aggregate":
-        method = lm.constraint_aware_uni_map
-        force_agg_results = ag.project_forces(
-            xyz=None,
+        method = constraint_aware_uni_map
+        force_agg_results = project_forces(
+            coords=coords[::force_stride],
             forces=forces[::force_stride],
-            config_mapping=config_map,
+            coord_map=config_map,
             constrained_inds=constraints,
             method=method,
         )
     elif mapping == "slice_optimize":
-        method = lm.qp_linear_map
+        method = qp_linear_map
         l2 = 1e3
-        force_agg_results = ag.project_forces(
-            xyz=None,
+        force_agg_results = project_forces(
+            coords=coords[::force_stride],
             forces=forces[::force_stride],
-            config_mapping=config_map,
+            coord_map=config_map,
             constrained_inds=constraints,
             method=method,
             l2_regularization=l2,
@@ -173,12 +180,11 @@ def slice_coord_forces(
         raise RuntimeError(
             f"Force mapping {mapping} is neither 'slice_aggregate' nor 'slice_optimize'."
         )
-
-    force_map_matrix = force_agg_results["map"].standard_matrix
+    force_map_matrix = force_agg_results["tmap"].force_map.standard_matrix
     cg_coords = config_map_matrix @ coords
     cg_forces = force_map_matrix @ forces
 
-    return cg_coords, cg_forces
+    return cg_coords, cg_forces, force_map_matrix
 
 
 def get_terminal_atoms(
