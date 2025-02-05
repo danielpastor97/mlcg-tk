@@ -11,9 +11,6 @@ from aggforce import (LinearMap,
                     qp_linear_map
                     )
 
-# aggforce import linearmap as lm
-# aggforce import agg as ag
-# aggforce import constfinder as cf
 
 from .prior_gen import PriorBuilder
 

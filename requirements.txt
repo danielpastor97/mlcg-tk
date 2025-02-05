@@ -1,5 +1,4 @@
-#-e git:https://github.com/noegroup/aggforce-legacy.git@1a93ef4ddafd2f8a9fc77eabfa4bdd2e2d516880#egg=aggforce
-aggforce @ git+https://github.com/noegroup/aggforce-legacy.git -e
+aggforce @ git+https://github.com/noegroup/aggforce.git -e
 h5py
 jsonargparse
 matplotlib
