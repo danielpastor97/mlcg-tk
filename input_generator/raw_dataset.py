@@ -387,7 +387,7 @@ class SampleCollection:
                     "No cg force map found. Skipping save."
                 )
             else:
-                np.save(f"{save_templ}cg_force_map.npy", self.cg_map)
+                np.save(f"{save_templ}cg_force_map.npy", self.force_map)
 
 
     def get_prior_nls(
