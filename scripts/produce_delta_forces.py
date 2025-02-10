@@ -20,7 +20,6 @@ from time import ctime
 
 from typing import Dict, List, Union, Callable, Optional
 from jsonargparse import CLI
-from repulsion_fitted import Repulsion
 
 def produce_delta_forces(
     dataset_name: str,
