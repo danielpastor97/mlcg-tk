@@ -16,5 +16,4 @@ embedding_func: input_generator.embedding_fivebead
 skip_residues:
 - ACE
 - NME
-use_terminal_embeddings: false
 copies: 35

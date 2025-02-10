@@ -10,7 +10,60 @@ from pathlib import Path
 from tqdm import tqdm
 
 class DatasetLoader:
-    pass
+    r"""
+    Base loader object for a dataset. Defines the interface that all loader should have.
+
+    As there is no standard way of saving the output of molecular dynamics simulations, 
+    the objective of this is class is to be an interface which will load the MD data
+    from a given dataset stored in a local path. It will further process the data to 
+    remove thing that are not relevant to our system (for example, solvent coordinates
+    and forces) and returned the clean coordinate and force as np.ndarrays and an mdtraj
+    object that carries the topology
+    
+    The loader should be flexible enough to handle datasets with different molecules, 
+    multiple independent trajectories of different length and other things.
+
+
+    """
+    def get_traj_top(self, name: str, pdb_fn: str):
+        r"""
+        Function to get the topology associated with a trajectory in the dataset.
+
+        PDB files represent molecules by putting the position of every atom in cartesian space.
+        From the distances between atoms, covalent bonds and other things can be deduced. 
+        
+        Note that, by convention, raw PDB files use angstroms as the unit of the coordinates.
+        Engines such as Pymol and mdtraj convert this values to nanometers
+
+        Parameters
+        ----------
+        name:
+            Name of input sample (i.e. the molecule or object in the data)
+        pdb_fn:
+            String representing a path to a PDB file which has the topolgy for
+        """
+        raise NotImplementedError(f"Base class {self.__class__} has no implementation")
+    
+    def load_coords_forces(
+        self, base_dir: str, name: str, stride: int = 1,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        r"""
+        Method to load the coordinate and force data
+
+        This requires the base directory where files can be saved, the name of the molecule
+        we are trying to load and a stride parameter. The stride is useful for cases where
+        the data is saved too frequently.
+
+        Parameters
+        ----------
+        base_dir:
+            Path to coordinate and force files.
+        name:
+            Name of input sample
+        stride : int
+            Interval by which to stride loaded data
+        """
+        raise NotImplementedError(f"Base class {self.__class__} has no implementation")
 
 
 class CATH_loader(DatasetLoader):
@@ -97,7 +150,7 @@ class DIMER_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, base_dir: str, name: str, stride: int = 1
+        self, base_dir: str, name: str, stride: int = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given DIMER pair name, returns np.ndarray's of its coordinates and forces at
@@ -149,7 +202,7 @@ class Trpcage_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, base_dir: str, name: str, stride: int = 1,
+        self, base_dir: str, name: str,  stride: int = 1
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given name, returns np.ndarray's of its coordinates and forces at
@@ -200,7 +253,7 @@ class Cln_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, base_dir: str, name: str, stride: int = 1,
+        self, base_dir: str, name: str, stride: int = 1
     ) -> Tuple[np.ndarray, np.ndarray]:
         coords_fns = natsorted(
             glob(os.path.join(base_dir, f"coords_nowater/chig_coor_*.npy"))
@@ -236,7 +289,7 @@ class Villin_loader(DatasetLoader):
         return aa_traj, top_dataframe
     
     def load_coords_forces(
-            self, base_dir: str, name: str, stride: int = 1,
+            self, base_dir: str, name: str, stride: int =1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         coords_fns = sorted(
             glob(
