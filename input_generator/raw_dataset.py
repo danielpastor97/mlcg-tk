@@ -306,10 +306,11 @@ class SampleCollection:
             )
             return
         else:
-            cg_coords, cg_forces = slice_coord_forces(
+            cg_coords, cg_forces, force_map = slice_coord_forces(
                 coords, forces, self.cg_map, mapping, force_stride
             )
 
+            self.force_map = force_map
             self.cg_coords = cg_coords
             self.cg_forces = cg_forces
 
@@ -319,6 +320,7 @@ class SampleCollection:
         self,
         save_dir: str,
         save_coord_force: bool = True,
+        save_cg_maps: bool = True,
         cg_coords: Union[np.ndarray, None] = None,
         cg_forces: Union[np.ndarray, None] = None,
     ):
@@ -371,6 +373,22 @@ class SampleCollection:
                     np.save(f"{save_templ}cg_forces.npy", self.cg_forces)
             else:
                 np.save(f"{save_templ}cg_forces.npy", cg_forces)
+
+        if save_cg_maps:
+            if not hasattr(self, "cg_map"):
+                print(
+                    "No cg coordinate map found. Skipping save."
+                )
+            else:
+                np.save(f"{save_templ}cg_coord_map.npy", self.cg_map)
+
+            if not hasattr(self, "force_map"):
+                print(
+                    "No cg force map found. Skipping save."
+                )
+            else:
+                np.save(f"{save_templ}cg_force_map.npy", self.force_map)
+
 
     def get_prior_nls(
         self, prior_builders: List[PriorBuilder], save_nls: bool = True, **kwargs

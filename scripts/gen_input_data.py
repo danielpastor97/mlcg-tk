@@ -89,8 +89,8 @@ def process_raw_dataset(
             aa_coords, aa_forces, mapping=cg_mapping_strategy
         )
 
-        samples.save_cg_output(save_dir, save_coord_force=True)
-        # the sample object will retain the output so it makes sense to cut them 
+        samples.save_cg_output(save_dir, save_coord_force=True, save_cg_maps=True)
+        # the sample object will retain the output so it makes sense to delete them 
         del samples.cg_coords
         del samples.cg_forces
         
