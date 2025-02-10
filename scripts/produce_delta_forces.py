@@ -20,7 +20,6 @@ from time import ctime
 
 from typing import Dict, List, Union, Callable, Optional
 from jsonargparse import CLI
-from repulsion_fitted import Repulsion
 
 def produce_delta_forces(
     dataset_name: str,
@@ -70,7 +69,10 @@ def produce_delta_forces(
 
         num_frames = coords.shape[0]
         delta_forces = []
-        for i in range(0, num_frames, batch_size):
+        iterator = range(0, num_frames, batch_size)
+        if len(names) == 1:
+            iterator = tqdm(iterator)
+        for i in iterator:
             sub_data_list = []
             for j in range(batch_size):
                 if i + j < len(coords):

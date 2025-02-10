@@ -7,6 +7,7 @@ from typing import Tuple
 import mdtraj as md
 import warnings
 from pathlib import Path
+from tqdm import tqdm
 
 class DatasetLoader:
     pass
@@ -148,7 +149,7 @@ class Trpcage_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, base_dir: str, name: str
+        self, base_dir: str, name: str, stride: int = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given name, returns np.ndarray's of its coordinates and forces at
@@ -177,13 +178,13 @@ class Trpcage_loader(DatasetLoader):
         aa_coord_list = []
         aa_force_list = []
         # load the files, checking against the mol dictionary
-        for cfn, ffn in zip(coords_fns, forces_fns):
+        for cfn, ffn in tqdm(zip(coords_fns, forces_fns), total=len(coords_fns)):
             force = np.load(ffn)  # in AA
             coord = np.load(cfn)  # in kcal/mol/AA
 
             assert coord.shape == force.shape
-            aa_coord_list.append(coord)
-            aa_force_list.append(force)
+            aa_coord_list.append(coord[::stride])
+            aa_force_list.append(force[::stride])
         aa_coords = np.concatenate(aa_coord_list)
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces
@@ -199,7 +200,7 @@ class Cln_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, base_dir: str, name: str
+        self, base_dir: str, name: str, stride: int = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         coords_fns = natsorted(
             glob(os.path.join(base_dir, f"coords_nowater/chig_coor_*.npy"))
@@ -213,13 +214,13 @@ class Cln_loader(DatasetLoader):
         aa_coord_list = []
         aa_force_list = []
         # load the files, checking against the mol dictionary
-        for cfn, ffn in zip(coords_fns, forces_fns):
+        for cfn, ffn in tqdm(zip(coords_fns, forces_fns), total=len(coords_fns)):
             force = np.load(ffn)  # in AA
             coord = np.load(cfn)  # in kcal/mol/AA
 
             assert coord.shape == force.shape
-            aa_coord_list.append(coord)
-            aa_force_list.append(force)
+            aa_coord_list.append(coord[::stride])
+            aa_force_list.append(force[::stride])
         aa_coords = np.concatenate(aa_coord_list)
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces
@@ -235,7 +236,7 @@ class Villin_loader(DatasetLoader):
         return aa_traj, top_dataframe
     
     def load_coords_forces(
-            self, base_dir: str, name: str
+            self, base_dir: str, name: str, stride: int = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         coords_fns = sorted(
             glob(
@@ -251,13 +252,13 @@ class Villin_loader(DatasetLoader):
 
         aa_coord_list = []
         aa_force_list = []
-        for c, f in zip(coords_fns, forces_fns):
+        for c, f in tqdm(zip(coords_fns, forces_fns), total=len(coords_fns)):
             coords = np.load(c)
             forces = np.load(f)
             assert coords.shape == forces.shape
 
-            aa_coord_list.append(coords)
-            aa_force_list.append(forces)
+            aa_coord_list.append(coords[::stride])
+            aa_force_list.append(forces[::stride])
         
         aa_coords = np.concatenate(aa_coord_list)
         aa_forces = np.concatenate(aa_force_list)
@@ -289,7 +290,7 @@ class OPEP_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, base_dir: str, name: str
+        self, base_dir: str, name: str, stride: int = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given CATH domain name, returns np.ndarray's of its coordinates and forces at
@@ -302,15 +303,15 @@ class OPEP_loader(DatasetLoader):
         name:
             Name of input sample
         """
-        coord_files = sorted(glob(f"{base_dir}coords_nowater/opep_{name}/*.npy"))
+        coord_files = sorted(glob(os.path.join(base_dir, f"coords_nowater/opep_{name}/*.npy")))
         if len(coord_files) == 0:
             coord_files = sorted(
-                glob(f"{base_dir}coords_nowater/coor_opep_{name}_*.npy")
+                glob(os.path.join(base_dir, f"coords_nowater/coor_opep_{name}_*.npy"))
             )
-        force_files = sorted(glob(f"{base_dir}forces_nowater/opep_{name}/*.npy"))
+        force_files = sorted(glob(os.path.join(base_dir, f"forces_nowater/opep_{name}/*.npy")))
         if len(force_files) == 0:
             force_files = sorted(
-                glob(f"{base_dir}forces_nowater/force_opep_{name}_*.npy")
+                glob(os.path.join(base_dir, f"forces_nowater/force_opep_{name}_*.npy"))
             )
 
         aa_coord_list = []
@@ -318,8 +319,8 @@ class OPEP_loader(DatasetLoader):
         for c, f in zip(coord_files, force_files):
             coords = np.load(c)
             forces = np.load(f)
-            aa_coord_list.append(coords)
-            aa_force_list.append(forces)
+            aa_coord_list.append(coords[::stride])
+            aa_force_list.append(forces[::stride])
         aa_coords = np.concatenate(aa_coord_list)
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces
