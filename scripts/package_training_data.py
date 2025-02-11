@@ -79,7 +79,7 @@ def package_training_data(
 
     if save_h5:
         # Create H5 of training data
-        fnout_h5 = osp.join(save_dir, f"{output_tag}.h5")
+        fnout_h5 = osp.join(save_dir, f"{output_tag[1:]}.h5")
 
         with h5py.File(fnout_h5, "w") as f:
             metaset = f.create_group(dataset_name)

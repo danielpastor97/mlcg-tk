@@ -5,4 +5,4 @@ save_dir: /path/to/output/directory/
 prior_tag: prior_tag
 prior_fn: /path/to/prior/model/prior_tag_prior_model.pt
 batch_size: 10000
-device: cuda
+device: cpu
