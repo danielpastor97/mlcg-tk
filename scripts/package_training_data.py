@@ -26,7 +26,8 @@ def package_training_data(
     training_data_dir: str,
     save_dir: str,
     save_h5: Optional[bool] = True,
-    save_parition: Optional[bool] = True,
+    save_partition: Optional[bool] = True,
+    single_protein: Optional[bool] = False,
     batch_size: int = 256,
     stride: int = 1,
     train_size: Optional[Union[float,int,None]] = 0.8,
@@ -55,6 +56,9 @@ def package_training_data(
         Whether to save dataset h5 file(s)
     save_partition : bool
         Whether to save dataset partition file(s)
+    single_protein : bool
+        Whether the produced partition file should be for a single-molecule model
+        Will be ignored if save_partition is False
     batch_size : int
         Number of samples of dataset to include in each training batch
     stride : int
@@ -75,7 +79,7 @@ def package_training_data(
 
     if save_h5:
         # Create H5 of training data
-        fnout_h5 = osp.join(save_dir, f"{output_tag}.h5")
+        fnout_h5 = osp.join(save_dir, f"{output_tag[1:]}.h5")
 
         with h5py.File(fnout_h5, "w") as f:
             metaset = f.create_group(dataset_name)
@@ -88,7 +92,7 @@ def package_training_data(
                         force_tag=force_tag,
                     )
                 except FileNotFoundError:
-                    print(samples.name)
+                    print("Skipping molecule : ", samples.name)
                     continue
             
                 name = f"{samples.tag}{samples.name}"
@@ -103,23 +107,32 @@ def package_training_data(
                 hdf_group.attrs["cg_embeds"] = cg_embeds
                 hdf_group.attrs["N_frames"] = cg_coords.shape[0]
     
-    if save_parition:
+    if save_partition:
         # Create partition file
         fnout_part = osp.join(save_dir, f"partition{output_tag}.yaml")
-        if train_mols == None and val_mols == None:
+        if single_protein:
+            train_mols = [f"{dataset_tag}{name}" for name in names]
+            val_mols = [f"{dataset_tag}{name}" for name in names]
             if train_size == None:
-                raise ValueError("Either a train size or predefined lists for training and validation samples must be specified.")
-            
-            train_mols, val_mols = train_test_split(
-                [f"{dataset_tag}{name}" for name in names],
-                train_size=train_size,
-                shuffle=True,
-                random_state=random_state,
-            )
-        elif train_mols != None:
-            val_mols = deepcopy(names).remove(train_mols)
-        elif val_mols != None:
-            train_mols = deepcopy(names).remove(val_mols)
+                raise ValueError("For single-protein partitions, a train size has to be specified")
+            if not isinstance(train_size, float):
+                raise ValueError("For single-protein partitions, train_size has to be a float corresponding to the ratio of frames for training")
+            assert train_size <=1.0, "train_size has to be a ratio of frames below 1.0"
+        else:
+            if train_mols == None and val_mols == None:
+                if train_size == None:
+                    raise ValueError("Either a train size or predefined lists for training and validation samples must be specified.")
+                
+                train_mols, val_mols = train_test_split(
+                    [f"{dataset_tag}{name}" for name in names],
+                    train_size=train_size,
+                    shuffle=True,
+                    random_state=random_state,
+                )
+            elif train_mols != None:
+                val_mols = deepcopy(names).remove(train_mols)
+            elif val_mols != None:
+                train_mols = deepcopy(names).remove(val_mols)
 
         partition_opts = {"train": {}, "val": {}}
         
@@ -138,7 +151,15 @@ def package_training_data(
             "stride": stride,
         }
         partition_opts["val"]["batch_sizes"] = {dataset_name: batch_size}
-        
+
+        if single_protein:
+            partition_opts["train"]["metasets"][dataset_name]["detailed_indices"] = {"filename": "./splits"}
+            for mol in train_mols:
+                partition_opts["train"]["metasets"][dataset_name]["detailed_indices"][mol] = {
+                    "seed": random_state,
+                    "test_ratio": 0.0,
+                    "val_ratio": 1.0-train_size
+                }
         with open(fnout_part, "w") as ofile:
             yaml.dump(partition_opts, ofile)
 
@@ -148,7 +169,7 @@ def combine_datasets(
     save_dir: str,
     force_tag: Optional[str],
     save_h5: Optional[bool] = True,
-    save_parition: Optional[bool] = True,
+    save_partition: Optional[bool] = True,
 ):
     """
     Computes structural features and accumulates statistics on dataset samples
@@ -177,7 +198,7 @@ def combine_datasets(
             for dataset in dataset_names:
                 f[dataset] = h5py.ExternalLink(f"{dataset}{get_output_tag(force_tag, placement='after')}.h5", f"/{dataset}")
 
-    if save_parition:
+    if save_partition:
         fnout_part = osp.join(save_dir, f"partition{output_tag}.yaml")
 
         partition_opts = {"train": {}, "val": {}}
