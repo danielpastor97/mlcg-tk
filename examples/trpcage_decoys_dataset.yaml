@@ -1,7 +1,7 @@
 h5_files:
-- /path/to/h5_output/directory/2JOF_.h5
+- ../demo_processed_data/1L2Y_prior_tag.h5
 datasets:
-- 2JOF
+- 1L2Y
 mol_name_prefix: DECOY_05
 scale: 0.5
 stride: 50

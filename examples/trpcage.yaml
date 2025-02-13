@@ -1,10 +1,10 @@
-dataset_name: 2JOF
-names: [2JOF]
+dataset_name: 1L2Y
+names: [1L2Y]
 sample_loader: input_generator.Trpcage_loader
 tag: ""
-raw_data_dir: /path/to/raw/data/
-save_dir:  /path/to/output/directory/
-pdb_template_fn:  /path/to/structures/directory/structure.pdb
+raw_data_dir: ../demo_raw_data/
+save_dir:  ../demo_processed_data/
+pdb_template_fn:  ../demo_raw_data/structure.pdb
 cg_atoms:
 - N
 - CA
