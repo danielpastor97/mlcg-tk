@@ -1,5 +1,0 @@
-save_dir: /path/to/saved/statistics/
-prior_tag: prior_tag
-embedding_map: input_generator.CGEmbeddingMapFiveBead
-temperature: 350
-

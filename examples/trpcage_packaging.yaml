@@ -1,8 +1,0 @@
-dataset_name: 2JOF
-names: [2JOF]
-training_data_dir: /path/to/training/data/directory/
-force_tag: "prior_tag"
-dataset_tag: ""
-save_dir: /path/to/output/directory/
-single_protein: True
-train_size: 0.8
