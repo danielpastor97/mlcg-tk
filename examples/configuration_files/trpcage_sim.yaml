@@ -1,10 +1,9 @@
-dataset_name: TRPCAGE
-raw_data_dir: /path/to/input/structures/directory/
-save_dir: /path/to/output/directory/
-tag: model_tag
+dataset_name: 1L2Y
+raw_data_dir: ./demo_raw_data/
 pdb_fns: 
-- trpcage_folded.pdb
-- trpcage_unfolded.pdb
+- structure.pdb
+save_dir: ./demo_processed_data/
+tag: model_tag
 cg_atoms:
 - N
 - CA
