@@ -54,7 +54,7 @@ class CGEmbeddingMapFiveBead(CGEmbeddingMap):
 
 class CGEmbeddingMapCA(CGEmbeddingMap):
     """
-    Five-bead embedding map defined by:
+    One-bead embedding map defined by:
         - CA : backbone alpha carbon, carrying aminoacid identity
     """
 
