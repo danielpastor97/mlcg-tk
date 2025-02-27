@@ -293,6 +293,7 @@ class SampleCollection:
         mapping: str = "slice_aggregate",
         filter_cis: bool = False,
         force_stride: int = 100,
+        batch_size: Optional[int] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Maps coordinates and forces to CG resolution
@@ -311,6 +312,8 @@ class SampleCollection:
             If True, frames containing a cis-omega angle will be filtered out
         force_stride:
             Striding to use for force projection results
+        batch_size:
+            Batching the coords and forces projection to CG
 
         Returns
         -------
@@ -337,7 +340,7 @@ class SampleCollection:
                         break
 
                 cg_coords, cg_forces, force_map = slice_coord_forces(
-                    coords, forces, self.cg_map, mapping, force_stride
+                    coords, forces, self.cg_map, mapping, force_stride, batch_size
                 )
                 self.force_map = force_map
             else: # all frames were removed by cis-filtering
