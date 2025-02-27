@@ -2,9 +2,9 @@ dataset_name: 2JOF
 names: [2JOF]
 sample_loader: input_generator.Trpcage_loader
 tag: ""
-raw_data_dir: /group/ag_clementi_cmb/projects/single_protein_datasets/charmm/raw_charmm22star_trp/
-save_dir:  /group/ag_clementi_cmb/users/sayeg84/mlcg-proteins/trpcage_ca/data/
-pdb_template_fn:  /group/ag_clementi_cmb/projects/single_protein_datasets/charmm/raw_charmm22star_trp/trpcage_50ns_0/structure.pdb
+raw_data_dir: /path/to/raw/data/
+save_dir:  /path/to/output/directory/
+pdb_template_fn:  /path/to/structures/directory/structure.pdb
 cg_atoms:
 - CA
 embedding_map: input_generator.CGEmbeddingMapCA
