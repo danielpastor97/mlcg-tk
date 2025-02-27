@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from time import ctime
 
-from typing import Dict, List, Union, Callable
+from typing import Dict, List, Union, Callable, Optional
 from jsonargparse import CLI
 import pickle as pck
 
@@ -34,7 +34,7 @@ def process_raw_dataset(
     cg_mapping_strategy: str,
     stride: int = 1,
     force_stride: int = 100,
-    batch_size: int = 10000
+    batch_size: Optional[int] = None
 ):
     """
     Applies coarse-grained mapping to coordinates and forces using input sample
@@ -69,6 +69,9 @@ def process_raw_dataset(
         currently only "slice_aggregate" and "slice_optimize" are implemented
     stride : int
         Interval by which to stride loaded data
+    batch_size : int
+        Optional size in which performing batches of AA mapping to CG, to avoid
+        memory overhead in large AA dataset
     """
     dataset = RawDataset(dataset_name, names, tag)
     for samples in tqdm(dataset, f"Processing CG data for {dataset_name} dataset..."):

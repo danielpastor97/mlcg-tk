@@ -155,7 +155,7 @@ def batch_matmul(map_matrix, X, batch_size):
 
 
 def slice_coord_forces(
-    coords, forces, cg_map, mapping: str = "slice_aggregate", force_stride: int = 100, batch_size: int = 10000
+    coords, forces, cg_map, mapping: str = "slice_aggregate", force_stride: int = 100, batch_size: Optional[int] = None
 ) -> Tuple:
     """
     Parameters
@@ -170,6 +170,9 @@ def slice_coord_forces(
         Mapping scheme to be used, must be either 'slice_aggregate' or 'slice_optimize'.
     force_stride:
         Striding to use for force projection results
+    batch_size:
+        Optional length of batch in which divide the AA mapping of coords and forces 
+        to CG ones
 
     Returns
     -------
@@ -204,10 +207,13 @@ def slice_coord_forces(
             f"Force mapping {mapping} is neither 'slice_aggregate' nor 'slice_optimize'."
         )
     force_map_matrix = force_agg_results["tmap"].force_map.standard_matrix
-    cg_coords = batch_matmul(config_map_matrix, coords, batch_size=batch_size)
-    cg_forces = batch_matmul(force_map_matrix, forces, batch_size=batch_size)
-#    cg_coords = config_map_matrix @ coords
-#    cg_forces = force_map_matrix @ forces
+
+    if batch_size != None: 
+        cg_coords = batch_matmul(config_map_matrix, coords, batch_size=batch_size)
+        cg_forces = batch_matmul(force_map_matrix, forces, batch_size=batch_size)
+    else:
+        cg_coords = config_map_matrix @ coords
+        cg_forces = force_map_matrix @ forces
 
     return cg_coords, cg_forces, force_map_matrix
 
