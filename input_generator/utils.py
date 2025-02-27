@@ -128,8 +128,39 @@ def map_cg_topology(
     return atom_df
 
 
+def batch_matmul(map_matrix, X, batch_size):
+    """
+    Perform matrix multiplication in chunks.
+    
+    Parameters:
+      map_matrix: np.ndarray of shape (N_CG_ats, N_FG_ats)
+      X: np.ndarray of shape (M_frames, N_FG_ats, 3)
+      batch_size: int, the number of rows (from the M dimension) to process at a time.
+    
+    Returns:
+      result: np.ndarray of shape (M_frames, N_CG_ats, 3)
+    """
+    results = []
+    M = X.shape[0]
+    for i in range(0, M, batch_size):
+        # Slice a batch along the M dimension
+        X_batch = X[i:i+batch_size]  # shape: (batch, N, 3)
+        # Perform matrix multiplication:
+        # map_matrix (CG, FG) multiplied by each X_batch (FG, 3) gives (GC, 3) for each sample.
+        # The broadcasting ensures the result is (batch, CG, 3)
+        result_batch = map_matrix @ X_batch  
+        results.append(result_batch)
+    # Concatenate all chunks along the first axis (M dimension)
+    return np.concatenate(results, axis=0)
+
+
 def slice_coord_forces(
-    coords, forces, cg_map, mapping: str = "slice_aggregate", force_stride: int = 100
+    coords, 
+    forces, 
+    cg_map, 
+    mapping: str = "slice_aggregate", 
+    force_stride: int = 100,
+    batch_size: int = 10000
 ) -> Tuple:
     """
     Parameters
@@ -178,8 +209,10 @@ def slice_coord_forces(
             f"Force mapping {mapping} is neither 'slice_aggregate' nor 'slice_optimize'."
         )
     force_map_matrix = force_agg_results["tmap"].force_map.standard_matrix
-    cg_coords = config_map_matrix @ coords
-    cg_forces = force_map_matrix @ forces
+    cg_coords = batch_matmul(config_map_matrix, coords, batch_size=batch_size)
+    cg_forces = batch_matmul(force_map_matrix, forces, batch_size=batch_size)
+#    cg_coords = config_map_matrix @ coords
+#    cg_forces = force_map_matrix @ forces
 
     return cg_coords, cg_forces, force_map_matrix
 
