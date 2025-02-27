@@ -4,6 +4,7 @@ import pickle
 from typing import List, Dict, Tuple, Optional, Union
 from copy import deepcopy
 import numpy as np
+import mdtraj as md
 import torch
 import warnings
 import os
@@ -16,6 +17,7 @@ from mlcg.data.atomic_data import AtomicData
 
 from .utils import (
     map_cg_topology,
+    filter_cis_frames,
     slice_coord_forces,
     get_terminal_atoms,
     get_edges_and_orders,
@@ -78,8 +80,14 @@ class CGDataBatch:
         self.batch_size = batch_size
         self.stride = stride
         self.concat_forces = concat_forces
-        self.cg_coords = torch.from_numpy(cg_coords[::stride])
-        self.cg_forces = torch.from_numpy(cg_forces[::stride])
+        if cg_coords is None:
+            self.cg_coords = None
+        else:
+            self.cg_coords = torch.from_numpy(cg_coords[::stride])
+        if cg_forces is None:
+            self.cg_forces = None
+        else:
+            self.cg_forces = torch.from_numpy(cg_forces[::stride])
         self.cg_embeds = torch.from_numpy(cg_embeds)
         self.cg_prior_nls = cg_prior_nls
         if isinstance(weights, np.ndarray):
@@ -88,8 +96,10 @@ class CGDataBatch:
                 self.weights = self.weights/torch.sum(self.weights)
         else:
             self.weights = None
-
-        self.n_structure = self.cg_coords.shape[0]
+        if self.cg_coords is None:
+            self.n_structure = 0
+        else:
+            self.n_structure = self.cg_coords.shape[0]
         if batch_size > self.n_structure:
             self.batch_size = self.n_structure
 
@@ -279,7 +289,9 @@ class SampleCollection:
         self,
         coords: np.ndarray,
         forces: np.ndarray,
+        topology: md.Topology,
         mapping: str = "slice_aggregate",
+        filter_cis: bool = False,
         force_stride: int = 100,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -291,8 +303,12 @@ class SampleCollection:
             Atomistic coordinates
         forces: [n_frames, n_atoms, 3]
             Atomistic forces
+        topology: 
+            mdtraj topology to lead atomistic coordinates (used for cis-omega angles filtering)
         mapping:
             Mapping scheme to be used, must be either 'slice_aggregate' or 'slice_optimize'.
+        filter_cis:
+            If True, frames containing a cis-omega angle will be filtered out
         force_stride:
             Striding to use for force projection results
 
@@ -306,11 +322,28 @@ class SampleCollection:
             )
             return
         else:
-            cg_coords, cg_forces, force_map = slice_coord_forces(
-                coords, forces, self.cg_map, mapping, force_stride
-            )
+            if filter_cis:
+                coords, forces = filter_cis_frames(
+                    coords, forces, topology, verbose=True
+                )
+            if coords.shape[0] != 0:
 
-            self.force_map = force_map
+                # since the cis-pro filtering might have removed a lot of frames
+                # we need to make sure the force_stride is not too large
+                # ie there are at least min(n_frames, 100) frames left after striding
+                while coords.shape[0]<100*force_stride:
+                    force_stride /= 10
+                    if force_stride == 1:
+                        break
+
+                cg_coords, cg_forces, force_map = slice_coord_forces(
+                    coords, forces, self.cg_map, mapping, force_stride
+                )
+                self.force_map = force_map
+            else: # all frames were removed by cis-filtering
+                cg_coords = None
+                cg_forces = None
+
             self.cg_coords = cg_coords
             self.cg_forces = cg_forces
 
@@ -502,6 +535,32 @@ class SampleCollection:
                 pickle.dump(prior_nls, pfile)
 
         return prior_nls
+    
+    def has_saved_cg_output(self, save_dir: str, prior_tag: str = "") -> bool:
+        """
+        Returns True if cg data exists for this SampleCollection
+
+        Used to skip processing of molecules where all frames have been removed by cis conformation filtering
+        
+        Parameters
+        ----------
+        save_dir:
+            Location of saved cg data
+        prior_tag:
+            String identifying the specific combination of prior terms
+
+        Returns
+        -------
+        True if cg output for the sample corresponding to prior_tag is present in save_dir
+        False otherwise
+        """
+        save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.name], placement="before"))
+        if not os.path.exists(f"{save_templ}cg_coords.npy"):
+            return False 
+        elif not os.path.exists(f"{save_templ}cg_forces.npy"):
+            return False
+        else:
+            return True
 
     def load_cg_output(self, save_dir: str, prior_tag: str = "") -> Tuple:
         """
@@ -520,8 +579,14 @@ class SampleCollection:
         structure, and prior neighbour list
         """
         save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.name], placement="before"))
-        cg_coords = np.load(f"{save_templ}cg_coords.npy")
-        cg_forces = np.load(f"{save_templ}cg_forces.npy")
+        if os.path.exists(f"{save_templ}cg_coords.npy"):
+            cg_coords = np.load(f"{save_templ}cg_coords.npy")
+        else:
+            cg_coords = None
+        if os.path.exists(f"{save_templ}cg_forces.npy"):
+            cg_forces = np.load(f"{save_templ}cg_forces.npy")
+        else:
+            cg_forces = None
         cg_embeds = np.load(f"{save_templ}cg_embeds.npy")
         cg_pdb = md.load(f"{save_templ}cg_structure.pdb")
         # load NLs
