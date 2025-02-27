@@ -1,5 +1,0 @@
-partition_file: /path/to/h5_output/directory/partition_2JOF.yaml
-mol_name_prefixes: 
-- DECOY_05
-partition_name: /path/to/h5_output/directory/DECOY_partition_2JOF.yaml
-
