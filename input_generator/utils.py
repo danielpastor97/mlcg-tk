@@ -155,12 +155,7 @@ def batch_matmul(map_matrix, X, batch_size):
 
 
 def slice_coord_forces(
-    coords, 
-    forces, 
-    cg_map, 
-    mapping: str = "slice_aggregate", 
-    force_stride: int = 100,
-    batch_size: int = 10000
+    coords, forces, cg_map, mapping: str = "slice_aggregate", force_stride: int = 100, batch_size: int = 10000
 ) -> Tuple:
     """
     Parameters
