@@ -1,0 +1,14 @@
+dataset_name: 1L2Y
+raw_data_dir: ./demo_raw_data/
+pdb_fns: 
+- structure.pdb
+save_dir: ./demo_processed_data/
+tag: model_tag
+cg_atoms:
+- CA
+embedding_map: input_generator.CGEmbeddingMapCA
+embedding_func: input_generator.embedding_ca
+skip_residues:
+- ACE
+- NME
+copies: 35
