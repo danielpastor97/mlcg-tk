@@ -219,7 +219,6 @@ def slice_coord_forces(
     return cg_coords, cg_forces, force_map_matrix
 
 def filter_cis_frames(
-        self,
         coords: np.ndarray,
         forces: np.ndarray,
         topology: md.Topology,
