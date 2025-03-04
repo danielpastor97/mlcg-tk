@@ -378,7 +378,7 @@ class SampleCollection:
             os.makedirs(save_dir)
 
         if not hasattr(self, "cg_atom_indices"):
-            print("CG mapping must be applied before outputs can be saved.")
+            warnings.warn("CG mapping must be applied before outputs can be saved.")
             return
 
         save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.name], placement="before"))
@@ -392,34 +392,44 @@ class SampleCollection:
         if save_coord_force:
             if cg_coords == None:
                 if not hasattr(self, "cg_coords"):
-                    print(
+                    warnings.warn(
                         "No coordinates found; only CG structure, embeddings and loaded forces will be saved."
                     )
                 else:
-                    np.save(f"{save_templ}cg_coords.npy", self.cg_coords)
+                    if self.cg_coords is None:
+                        warnings.warn(
+                            "No coordinates found; only CG structure, embeddings and loaded forces will be saved."
+                        )
+                    else:
+                        np.save(f"{save_templ}cg_coords.npy", self.cg_coords)
             else:
                 np.save(f"{save_templ}cg_coords.npy", cg_coords)
 
             if cg_forces == None:
                 if not hasattr(self, "cg_forces"):
-                    print(
+                    warnings.warn(
                         "No forces found;  only CG structure, embeddings, and loaded coordinates will be saved."
                     )
                 else:
-                    np.save(f"{save_templ}cg_forces.npy", self.cg_forces)
+                    if self.cg_forces is None:
+                        warnings.warn(
+                            "No forces found;  only CG structure, embeddings, and loaded coordinates will be saved."
+                        )
+                    else:
+                        np.save(f"{save_templ}cg_forces.npy", self.cg_forces)
             else:
                 np.save(f"{save_templ}cg_forces.npy", cg_forces)
 
         if save_cg_maps:
             if not hasattr(self, "cg_map"):
-                print(
+                warnings.warn(
                     "No cg coordinate map found. Skipping save."
                 )
             else:
                 np.save(f"{save_templ}cg_coord_map.npy", self.cg_map)
 
             if not hasattr(self, "force_map"):
-                print(
+                warnings.warn(
                     "No cg force map found. Skipping save."
                 )
             else:

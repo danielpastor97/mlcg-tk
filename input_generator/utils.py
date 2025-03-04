@@ -255,9 +255,9 @@ def filter_cis_frames(
         cis_omega_threshold = 1.0 #rad
         mask = np.all(np.abs(omega_values) > 1, axis=1)
         if not np.all(mask):
-            warning.warn(f"Discarding {len(mask) - np.sum(mask)} cis frames")
+            warnings.warn(f"Discarding {len(mask) - np.sum(mask)} cis frames")
         if np.sum(mask) == 0:
-            warning.warn(f"This amounts to removing all frames for this molecule")
+            warnings.warn(f"This amounts to removing all frames for this molecule")
 
         return  coords[mask], forces[mask]
 
