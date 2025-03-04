@@ -1,6 +1,9 @@
 # for demo reasons
 demo_processed_data
 
+# for private stuff
+private_raw_data_loader.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
