@@ -124,6 +124,7 @@ class CATH_loader(DatasetLoader):
         aa_forces = np.concatenate(aa_force_list)[::stride]
         return aa_coords, aa_forces
 
+
 class DIMER_loader(DatasetLoader):
     """
     Loader object for original dataset of mono- and dipeptide pairwise umbrella sampling simulations
@@ -174,6 +175,7 @@ class DIMER_loader(DatasetLoader):
         force = force / 41.84
 
         return coord, force
+
 
 class Trpcage_loader(DatasetLoader):
     """

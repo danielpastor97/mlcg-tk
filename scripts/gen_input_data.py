@@ -17,7 +17,6 @@ from time import ctime
 from typing import Dict, List, Union, Callable, Optional
 from jsonargparse import CLI
 import pickle as pck
-import mdtraj as md
 
 
 def process_raw_dataset(
