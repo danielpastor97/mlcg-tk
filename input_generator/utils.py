@@ -4,15 +4,26 @@ import numpy as np
 import mdtraj as md
 from functools import wraps
 
-from aggforce import (LinearMap, 
-                    guess_pairwise_constraints, 
-                    project_forces, 
-                    constraint_aware_uni_map,
-                    qp_linear_map
-                    )
+from aggforce import (
+    LinearMap,
+    guess_pairwise_constraints,
+    project_forces,
+    constraint_aware_uni_map,
+    qp_linear_map,
+)
 
 
 from .prior_gen import PriorBuilder
+
+
+class CGFilesNotFound(Exception):
+    """Exception raised for when one of the cg files is not found"""
+
+    def __init__(self, message, errors=None):
+        # Initialize the base class with the message
+        super().__init__(message)
+        # Optional: store additional information about errors
+        self.errors = errors
 
 
 def with_attrs(**func_attrs):
@@ -33,9 +44,7 @@ def with_attrs(**func_attrs):
     return attr_decorator
 
 
-def get_output_tag(
-        tag_label: Union[List,str], placement: str="before"
-):
+def get_output_tag(tag_label: Union[List, str], placement: str = "before"):
     """
     Helper function for combining output tag labels neatly.
     Fixes issues of connecting/preceding '_' being included in some labels but not others.
@@ -57,7 +66,7 @@ def get_output_tag(
         for l in tag_label:
             if l in [None, "", " "]:
                 tag_label.remove(l)
-        joined_label = "_".join([l.strip('_') for l in tag_label])
+        joined_label = "_".join([l.strip("_") for l in tag_label])
         if placement == "before":
             return f"{joined_label}_"
         elif placement == "after":
@@ -131,12 +140,12 @@ def map_cg_topology(
 def batch_matmul(map_matrix, X, batch_size):
     """
     Perform matrix multiplication in chunks.
-    
+
     Parameters:
       map_matrix: np.ndarray of shape (N_CG_ats, N_FG_ats)
       X: np.ndarray of shape (M_frames, N_FG_ats, 3)
       batch_size: int, the number of rows (from the M dimension) to process at a time.
-    
+
     Returns:
       result: np.ndarray of shape (M_frames, N_CG_ats, 3)
     """
@@ -144,18 +153,23 @@ def batch_matmul(map_matrix, X, batch_size):
     M = X.shape[0]
     for i in range(0, M, batch_size):
         # Slice a batch along the M dimension
-        X_batch = X[i:i+batch_size]  # shape: (batch, N, 3)
+        X_batch = X[i : i + batch_size]  # shape: (batch, N, 3)
         # Perform matrix multiplication:
         # map_matrix (CG, FG) multiplied by each X_batch (FG, 3) gives (GC, 3) for each sample.
         # The broadcasting ensures the result is (batch, CG, 3)
-        result_batch = map_matrix @ X_batch  
+        result_batch = map_matrix @ X_batch
         results.append(result_batch)
     # Concatenate all chunks along the first axis (M dimension)
     return np.concatenate(results, axis=0)
 
 
 def slice_coord_forces(
-    coords, forces, cg_map, mapping: str = "slice_aggregate", force_stride: int = 100, batch_size: Optional[int] = None
+    coords,
+    forces,
+    cg_map,
+    mapping: str = "slice_aggregate",
+    force_stride: int = 100,
+    batch_size: Optional[int] = None,
 ) -> Tuple:
     """
     Parameters
@@ -171,7 +185,7 @@ def slice_coord_forces(
     force_stride:
         Striding to use for force projection results
     batch_size:
-        Optional length of batch in which divide the AA mapping of coords and forces 
+        Optional length of batch in which divide the AA mapping of coords and forces
         to CG ones
 
     Returns
@@ -208,7 +222,7 @@ def slice_coord_forces(
         )
     force_map_matrix = force_agg_results["tmap"].force_map.standard_matrix
 
-    if batch_size != None: 
+    if batch_size != None:
         cg_coords = batch_matmul(config_map_matrix, coords, batch_size=batch_size)
         cg_forces = batch_matmul(force_map_matrix, forces, batch_size=batch_size)
     else:

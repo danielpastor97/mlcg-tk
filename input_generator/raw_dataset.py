@@ -15,6 +15,7 @@ from mlcg.neighbor_list.neighbor_list import make_neighbor_list
 from mlcg.data.atomic_data import AtomicData
 
 from .utils import (
+    CGFilesNotFound,
     map_cg_topology,
     slice_coord_forces,
     get_terminal_atoms,
@@ -85,7 +86,7 @@ class CGDataBatch:
         if isinstance(weights, np.ndarray):
             self.weights = torch.from_numpy(weights[::stride])
             if stride != 1:
-                self.weights = self.weights/torch.sum(self.weights)
+                self.weights = self.weights / torch.sum(self.weights)
         else:
             self.weights = None
 
@@ -348,7 +349,9 @@ class SampleCollection:
             print("CG mapping must be applied before outputs can be saved.")
             return
 
-        save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.name], placement="before"))
+        save_templ = os.path.join(
+            save_dir, get_output_tag([self.tag, self.name], placement="before")
+        )
         cg_xyz = self.input_traj.atom_slice(self.cg_atom_indices).xyz
         cg_traj = md.Trajectory(cg_xyz, md.Topology.from_dataframe(self.cg_dataframe))
         cg_traj.save_pdb(f"{save_templ}cg_structure.pdb")
@@ -379,19 +382,14 @@ class SampleCollection:
 
         if save_cg_maps:
             if not hasattr(self, "cg_map"):
-                print(
-                    "No cg coordinate map found. Skipping save."
-                )
+                print("No cg coordinate map found. Skipping save.")
             else:
                 np.save(f"{save_templ}cg_coord_map.npy", self.cg_map)
 
             if not hasattr(self, "force_map"):
-                print(
-                    "No cg force map found. Skipping save."
-                )
+                print("No cg force map found. Skipping save.")
             else:
                 np.save(f"{save_templ}cg_force_map.npy", self.force_map)
-
 
     def get_prior_nls(
         self, prior_builders: List[PriorBuilder], save_nls: bool = True, **kwargs
@@ -473,7 +471,7 @@ class SampleCollection:
             # iterate over chains
             for chain in cg_top.chains:
                 ch_atoms = list(chain.atoms)
-                # iterate over CA atoms in each chain and add bonds between them 
+                # iterate over CA atoms in each chain and add bonds between them
                 for i, _ in enumerate(ch_atoms[:-1]):
                     cg_top.add_bond(ch_atoms[i], ch_atoms[i + 1])
 
@@ -522,13 +520,17 @@ class SampleCollection:
         Tuple of np.ndarrays containing coarse grained coordinates, forces, embeddings,
         structure, and prior neighbour list
         """
-        save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.name], placement="before"))
+        save_templ = os.path.join(
+            save_dir, get_output_tag([self.tag, self.name], placement="before")
+        )
         cg_coords = np.load(f"{save_templ}cg_coords.npy")
         cg_forces = np.load(f"{save_templ}cg_forces.npy")
         cg_embeds = np.load(f"{save_templ}cg_embeds.npy")
         cg_pdb = md.load(f"{save_templ}cg_structure.pdb")
         # load NLs
-        ofile =  f"{save_templ}prior_nls{get_output_tag(prior_tag, placement='after')}.pkl"
+        ofile = (
+            f"{save_templ}prior_nls{get_output_tag(prior_tag, placement='after')}.pkl"
+        )
 
         with open(ofile, "rb") as f:
             cg_prior_nls = pickle.load(f)
@@ -563,19 +565,21 @@ class SampleCollection:
         cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls = self.load_cg_output(
             save_dir, prior_tag
         )
-        #load weights if given
+        # load weights if given
         if weights_template_fn != None:
             weights = np.load(
                 os.path.join(save_dir, weights_template_fn.format(self.name))
-                ) 
+            )
         else:
             weights = None
         batch_list = CGDataBatch(
             cg_coords, cg_forces, cg_embeds, cg_prior_nls, batch_size, stride, weights
         )
         return batch_list
-    
-    def load_training_inputs(self, training_data_dir: str, force_tag: str = "", stride: int = 1) -> Tuple:
+
+    def load_training_inputs(
+        self, training_data_dir: str, force_tag: str = "", stride: int = 1
+    ) -> Tuple:
         """
         Loads all cg data produced by `save_cg_output` and `get_prior_nls`
 
@@ -590,13 +594,24 @@ class SampleCollection:
         -------
         Tuple of np.ndarrays containing coarse grained coordinates, delta forces, and embeddings,
         """
-        save_templ = os.path.join(training_data_dir, get_output_tag([self.tag, self.name], placement="before"))
-        cg_coords = np.load(f"{save_templ}cg_coords.npy")[::stride]
+        save_templ = os.path.join(
+            training_data_dir, get_output_tag([self.tag, self.name], placement="before")
+        )
         cg_embeds = np.load(f"{save_templ}cg_embeds.npy")
-
-        save_templ_forces = os.path.join(training_data_dir, get_output_tag([self.tag, self.name, force_tag], placement="before"))
-        cg_forces = np.load(f"{save_templ_forces}delta_forces.npy")[::stride]
-        
+        coord_file_path = f"{save_templ}cg_coords.npy"
+        if not os.path.isfile(coord_file_path):
+            raise CGFilesNotFound(f"cg coords were not found for {self.name}")
+        cg_coords = np.load(coord_file_path)[::stride]
+        save_templ_forces = os.path.join(
+            training_data_dir,
+            get_output_tag([self.tag, self.name, force_tag], placement="before"),
+        )
+        force_file_path = f"{save_templ_forces}delta_forces.npy"
+        if not os.path.isfile(force_file_path):
+            raise CGFilesNotFound(
+                f"cg forces were not found for {self.name} with force {force_tag}"
+            )
+        cg_forces = np.load(force_file_path)[::stride]
         return cg_coords, cg_forces, cg_embeds
 
 
