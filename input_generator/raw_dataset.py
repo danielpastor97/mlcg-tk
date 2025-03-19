@@ -305,7 +305,7 @@ class SampleCollection:
             Atomistic coordinates
         forces: [n_frames, n_atoms, 3]
             Atomistic forces
-        topology: 
+        topology:
             mdtraj topology to lead atomistic coordinates (used for cis-omega angles filtering)
         mapping:
             Mapping scheme to be used, must be either 'slice_aggregate' or 'slice_optimize'.
@@ -331,12 +331,11 @@ class SampleCollection:
                     coords, forces, topology, verbose=True
                 )
             if coords.shape[0] != 0:
-
                 # since the cis-pro filtering might have removed a lot of frames
                 # we need to make sure the force_stride is not too large
                 # ie there are at least min(n_frames, 100) frames left after striding
-                while coords.shape[0]<100*force_stride:
-                    force_stride =  force_stride // 10
+                while coords.shape[0] < 100 * force_stride:
+                    force_stride = force_stride // 10
                     if force_stride == 1:
                         break
 
@@ -344,7 +343,7 @@ class SampleCollection:
                     coords, forces, self.cg_map, mapping, force_stride, batch_size
                 )
                 self.force_map = force_map
-            else: # all frames were removed by cis-filtering
+            else:  # all frames were removed by cis-filtering
                 cg_coords = None
                 cg_forces = None
 
@@ -425,16 +424,12 @@ class SampleCollection:
 
         if save_cg_maps:
             if not hasattr(self, "cg_map"):
-                warnings.warn(
-                    "No cg coordinate map found. Skipping save."
-                )
+                warnings.warn("No cg coordinate map found. Skipping save.")
             else:
                 np.save(f"{save_templ}cg_coord_map.npy", self.cg_map)
 
             if not hasattr(self, "force_map"):
-                warnings.warn(
-                    "No cg force map found. Skipping save."
-                )
+                warnings.warn("No cg force map found. Skipping save.")
             else:
                 np.save(f"{save_templ}cg_force_map.npy", self.force_map)
 
@@ -550,13 +545,13 @@ class SampleCollection:
                 pickle.dump(prior_nls, pfile)
 
         return prior_nls
-    
+
     def has_saved_cg_output(self, save_dir: str, prior_tag: str = "") -> bool:
         """
         Returns True if cg data exists for this SampleCollection
 
         Used to skip processing of molecules where all frames have been removed by cis conformation filtering
-        
+
         Parameters
         ----------
         save_dir:
@@ -569,9 +564,11 @@ class SampleCollection:
         True if cg output for the sample corresponding to prior_tag is present in save_dir
         False otherwise
         """
-        save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.name], placement="before"))
+        save_templ = os.path.join(
+            save_dir, get_output_tag([self.tag, self.name], placement="before")
+        )
         if not os.path.exists(f"{save_templ}cg_coords.npy"):
-            return False 
+            return False
         elif not os.path.exists(f"{save_templ}cg_forces.npy"):
             return False
         else:
@@ -593,7 +590,9 @@ class SampleCollection:
         Tuple of np.ndarrays containing coarse grained coordinates, forces, embeddings,
         structure, and prior neighbour list
         """
-        save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.name], placement="before"))
+        save_templ = os.path.join(
+            save_dir, get_output_tag([self.tag, self.name], placement="before")
+        )
         if os.path.exists(f"{save_templ}cg_coords.npy"):
             cg_coords = np.load(f"{save_templ}cg_coords.npy")
         else:
