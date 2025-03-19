@@ -52,6 +52,7 @@ class CGEmbeddingMapFiveBead(CGEmbeddingMap):
     def __init__(self):
         super().__init__(embedding_map_fivebead)
 
+
 class CGEmbeddingMapCA(CGEmbeddingMap):
     """
     One-bead embedding map defined by:
@@ -59,7 +60,7 @@ class CGEmbeddingMapCA(CGEmbeddingMap):
     """
 
     def __init__(self):
-        ca_dict = {key:emb for key,emb in embedding_map_fivebead.items() if emb <= 20}
+        ca_dict = {key: emb for key, emb in embedding_map_fivebead.items() if emb <= 20}
         super().__init__(ca_dict)
 
 
@@ -106,6 +107,7 @@ def embedding_fivebead(atom_df):
         print(f"Unknown atom name given: {name}")
         atom_type = "NA"
     return atom_type
+
 
 def embedding_ca(atom_df):
     """

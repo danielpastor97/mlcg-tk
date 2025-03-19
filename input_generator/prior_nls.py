@@ -502,4 +502,3 @@ class CA_pseudo_dihedral:
 
     def get_fit_kwargs(self, nl_name):
         return {"n_degs": 5, "constrain_deg": 5}
-

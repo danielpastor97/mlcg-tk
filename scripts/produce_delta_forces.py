@@ -21,6 +21,7 @@ from time import ctime
 from typing import Dict, List, Union, Callable, Optional
 from jsonargparse import CLI
 
+
 def produce_delta_forces(
     dataset_name: str,
     names: List[str],
@@ -93,10 +94,14 @@ def produce_delta_forces(
                 if j < len(sub_data_list):
                     delta_force = sub_data_list[j].forces.detach().cpu()
                     delta_forces.append(delta_force.numpy())
-        
-        fnout = os.path.join(save_dir, f"{get_output_tag([tag, samples.name, prior_tag, force_tag], placement='before')}delta_forces.npy")
+
+        fnout = os.path.join(
+            save_dir,
+            f"{get_output_tag([tag, samples.name, prior_tag, force_tag], placement='before')}delta_forces.npy",
+        )
         np.save(
-            fnout, np.concatenate(delta_forces, axis=0).reshape(*coords.shape),
+            fnout,
+            np.concatenate(delta_forces, axis=0).reshape(*coords.shape),
         )
 
 

@@ -12,12 +12,13 @@ from input_generator.utils import get_output_tag
 from jsonargparse import CLI
 from typing import List, Optional
 
+
 def merge_statistics(
     save_dir: str,
     prior_tag: str,
     prior_builders: List[PriorBuilder],
     names: List[str],
-    tag: Optional[str] = None
+    tag: Optional[str] = None,
 ):
     """
     Merges statistics computed for separate datasets or for individual samples of the same dataset.
@@ -37,12 +38,18 @@ def merge_statistics(
     """
     all_stats = []
     for name in names:
-        stats_fn = osp.join(save_dir, f"{get_output_tag([tag, name, prior_tag], placement='before')}prior_builders.pck")
+        stats_fn = osp.join(
+            save_dir,
+            f"{get_output_tag([tag, name, prior_tag], placement='before')}prior_builders.pck",
+        )
         with open(stats_fn, "rb") as ifile:
             stats = pkl.load(ifile)
         all_stats.append(stats)
-    
-    fnout =  osp.join(save_dir, f"{get_output_tag([tag, prior_tag], placement='before')}prior_builders.pck")
+
+    fnout = osp.join(
+        save_dir,
+        f"{get_output_tag([tag, prior_tag], placement='before')}prior_builders.pck",
+    )
     builder_dict = {}
     for prior_builder in prior_builders:
         builder_dict[prior_builder.name] = prior_builder
@@ -56,7 +63,7 @@ def merge_statistics(
                 hists = builder.histograms[nl_name]
                 for k, hist in hists.items():
                     combined_builder.histograms.data[nl_name][k] += hist
-    
+
     with open(fnout, "wb") as ofile:
         pkl.dump(prior_builders, ofile)
 
