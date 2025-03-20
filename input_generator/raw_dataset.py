@@ -157,8 +157,16 @@ class SampleCollection:
         self,
         name: str,
         tag: str,
+        n_batches: Optional[int] = 1
     ) -> None:
         self.name = name
+        if "_batch_" in name:
+            self.mol_name = name.split("_batch_")[0]
+            self.batch = int(name.split("_batch_")[-1])
+        else:
+            self.mol_name = name
+            self.batch = None
+        self.n_batches = n_batches
         self.tag = tag
 
     def apply_cg_mapping(
@@ -381,13 +389,14 @@ class SampleCollection:
             warnings.warn("CG mapping must be applied before outputs can be saved.")
             return
 
+        mol_save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.mol_name], placement="before"))
         save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.name], placement="before"))
         cg_xyz = self.input_traj.atom_slice(self.cg_atom_indices).xyz
         cg_traj = md.Trajectory(cg_xyz, md.Topology.from_dataframe(self.cg_dataframe))
-        cg_traj.save_pdb(f"{save_templ}cg_structure.pdb")
+        cg_traj.save_pdb(f"{mol_save_templ}cg_structure.pdb")
 
         embeds = np.array(self.cg_dataframe["type"].to_list())
-        np.save(f"{save_templ}cg_embeds.npy", embeds)
+        np.save(f"{mol_save_templ}cg_embeds.npy", embeds)
 
         if save_coord_force:
             if cg_coords == None:
@@ -426,14 +435,35 @@ class SampleCollection:
                     "No cg coordinate map found. Skipping save."
                 )
             else:
-                np.save(f"{save_templ}cg_coord_map.npy", self.cg_map)
+                np.save(f"{mol_save_templ}cg_coord_map.npy", self.cg_map)
 
             if not hasattr(self, "force_map"):
                 warnings.warn(
                     "No cg force map found. Skipping save."
                 )
             else:
-                np.save(f"{save_templ}cg_force_map.npy", self.force_map)
+                np.save(f"{mol_save_templ}cg_force_map.npy", self.force_map)
+
+    def load_cg_force_map(
+        self,
+        save_dir: str
+    ) -> np.ndarray:
+        """
+        Helper function to load a previously saved force map for the molecule in the sample
+
+        Parameters:
+        -----------
+        save_dir: str
+            path to the directory where the force map was saved in the first batch of the molecule in the sample
+        
+        Returns:
+        --------
+        force_map: np.ndarray
+            force map corresponding to the molecule in self
+        """
+        map_save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.mol_name], placement="before"))
+        force_map = np.load(f"{map_save_templ}cg_force_map.npy")
+        return force_map
 
 
     def get_prior_nls(
@@ -591,6 +621,7 @@ class SampleCollection:
         Tuple of np.ndarrays containing coarse grained coordinates, forces, embeddings,
         structure, and prior neighbour list
         """
+        mol_save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.mol_name], placement="before"))
         save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.name], placement="before"))
         if os.path.exists(f"{save_templ}cg_coords.npy"):
             cg_coords = np.load(f"{save_templ}cg_coords.npy")
@@ -600,10 +631,10 @@ class SampleCollection:
             cg_forces = np.load(f"{save_templ}cg_forces.npy")
         else:
             cg_forces = None
-        cg_embeds = np.load(f"{save_templ}cg_embeds.npy")
-        cg_pdb = md.load(f"{save_templ}cg_structure.pdb")
+        cg_embeds = np.load(f"{mol_save_templ}cg_embeds.npy")
+        cg_pdb = md.load(f"{mol_save_templ}cg_structure.pdb")
         # load NLs
-        ofile =  f"{save_templ}prior_nls{get_output_tag(prior_tag, placement='after')}.pkl"
+        ofile =  f"{mol_save_templ}prior_nls{get_output_tag(prior_tag, placement='after')}.pkl"
 
         with open(ofile, "rb") as f:
             cg_prior_nls = pickle.load(f)
@@ -665,13 +696,37 @@ class SampleCollection:
         -------
         Tuple of np.ndarrays containing coarse grained coordinates, delta forces, and embeddings,
         """
+        mol_save_templ = os.path.join(training_data_dir, get_output_tag([self.tag, self.mol_name], placement="before"))
         save_templ = os.path.join(training_data_dir, get_output_tag([self.tag, self.name], placement="before"))
         cg_coords = np.load(f"{save_templ}cg_coords.npy")[::stride]
-        cg_embeds = np.load(f"{save_templ}cg_embeds.npy")
+        cg_embeds = np.load(f"{mol_save_templ}cg_embeds.npy")
 
         save_templ_forces = os.path.join(training_data_dir, get_output_tag([self.tag, self.name, force_tag], placement="before"))
         cg_forces = np.load(f"{save_templ_forces}delta_forces.npy")[::stride]
         
+        return cg_coords, cg_forces, cg_embeds
+    
+    def load_all_batches_training_inputs(
+        self, 
+        training_data_dir: str, 
+        force_tag: str = "", 
+        mol_num_batches: int = 1,
+        stride: int = 1
+    ):
+        mol_save_templ = os.path.join(training_data_dir, get_output_tag([self.tag, self.name], placement="before"))
+        cg_embeds = np.load(f"{mol_save_templ}cg_embeds.npy")
+        cg_coords = []
+        cg_forces = []
+        for b in range(mol_num_batches):
+            save_templ = os.path.join(training_data_dir, get_output_tag([self.tag, self.name, f"batch_{b}"], placement="before"))
+            save_templ_forces = os.path.join(training_data_dir, get_output_tag([self.tag, self.name, f"batch_{b}", force_tag], placement="before"))
+
+            cg_coords.append(np.load(f"{save_templ}cg_coords.npy"))
+            cg_forces.append(np.load(f"{save_templ_forces}delta_forces.npy"))
+
+        cg_coords = np.concatenate(cg_coords)[::stride]
+        cg_forces = np.concatenate(cg_forces)[::stride]
+
         return cg_coords, cg_forces, cg_embeds
 
 
@@ -691,18 +746,34 @@ class RawDataset:
         List of SampleCollection objects for all samples in dataset
     """
 
-    def __init__(self, dataset_name: str, names: List[str], tag: str) -> None:
+    def __init__(
+        self, 
+        dataset_name: str, 
+        names: List[str], 
+        tag: str, 
+        n_batches: Optional[int] = 1
+    ) -> None:
         self.dataset_name = dataset_name
         self.names = names
         self.tag = tag
         self.dataset = []
 
         for name in names:
-            data_samples = SampleCollection(
-                name=name,
-                tag=tag,
-            )
-            self.dataset.append(data_samples)
+            if n_batches > 1:
+                for batch in range(n_batches):
+                    data_samples = SampleCollection(
+                        name=f"{name}_batch_{batch}",
+                        tag=tag,
+                        n_batches=n_batches,
+                    )
+                    self.dataset.append(data_samples)
+            else:
+                data_samples = SampleCollection(
+                    name=name,
+                    tag=tag,
+                    n_batches=n_batches,
+                )
+                self.dataset.append(data_samples)
 
     def __getitem__(self, idx):
         return self.dataset[idx]
