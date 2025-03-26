@@ -10,29 +10,31 @@ from pathlib import Path
 from tqdm import tqdm
 from .utils import chunker
 
+
 class DatasetLoader:
     r"""
     Base loader object for a dataset. Defines the interface that all loader should have.
 
-    As there is no standard way of saving the output of molecular dynamics simulations, 
+    As there is no standard way of saving the output of molecular dynamics simulations,
     the objective of this is class is to be an interface which will load the MD data
-    from a given dataset stored in a local path. It will further process the data to 
+    from a given dataset stored in a local path. It will further process the data to
     remove thing that are not relevant to our system (for example, solvent coordinates
     and forces) and returned the clean coordinate and force as np.ndarrays and an mdtraj
     object that carries the topology
-    
-    The loader should be flexible enough to handle datasets with different molecules, 
+
+    The loader should be flexible enough to handle datasets with different molecules,
     multiple independent trajectories of different length and other things.
 
 
     """
+
     def get_traj_top(self, name: str, pdb_fn: str):
         r"""
         Function to get the topology associated with a trajectory in the dataset.
 
         PDB files represent molecules by putting the position of every atom in cartesian space.
-        From the distances between atoms, covalent bonds and other things can be deduced. 
-        
+        From the distances between atoms, covalent bonds and other things can be deduced.
+
         Note that, by convention, raw PDB files use angstroms as the unit of the coordinates.
         Engines such as Pymol and mdtraj convert this values to nanometers
 
@@ -44,14 +46,14 @@ class DatasetLoader:
             String representing a path to a PDB file which has the topolgy for
         """
         raise NotImplementedError(f"Base class {self.__class__} has no implementation")
-    
+
     def load_coords_forces(
-        self, 
-        base_dir: str, 
-        name: str,  
-        stride: int = 1, 
-        batch: Optional[int] = None, 
-        n_batches: Optional[int] = 1
+        self,
+        base_dir: str,
+        name: str,
+        stride: int = 1,
+        batch: Optional[int] = None,
+        n_batches: Optional[int] = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Method to load the coordinate and force data
@@ -102,12 +104,12 @@ class CATH_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, 
-        base_dir: str, 
-        name: str,  
-        stride: int = 1, 
-        batch: Optional[int] = None, 
-        n_batches: Optional[int] = 1
+        self,
+        base_dir: str,
+        name: str,
+        stride: int = 1,
+        batch: Optional[int] = None,
+        n_batches: Optional[int] = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given CATH domain name, returns np.ndarray's of its coordinates and forces at
@@ -131,7 +133,9 @@ class CATH_loader(DatasetLoader):
         outputs_fns = natsorted(glob(os.path.join(base_dir, f"output/{name}/*_part_*")))
 
         if n_batches > 1:
-            raise NotImplementedError("mol_num_batches can only be used for single-protein datasets for now")
+            raise NotImplementedError(
+                "mol_num_batches can only be used for single-protein datasets for now"
+            )
 
         aa_coord_list = []
         aa_force_list = []
@@ -175,12 +179,12 @@ class DIMER_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, 
-        base_dir: str, 
-        name: str,  
-        stride: int = 1, 
-        batch: Optional[int] = None, 
-        n_batches: Optional[int] = 1
+        self,
+        base_dir: str,
+        name: str,
+        stride: int = 1,
+        batch: Optional[int] = None,
+        n_batches: Optional[int] = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given DIMER pair name, returns np.ndarray's of its coordinates and forces at
@@ -201,7 +205,9 @@ class DIMER_loader(DatasetLoader):
             if greater than 1, divide the total trajectories to load into n_batches chunks
         """
         if n_batches > 1:
-            raise NotImplementedError("mol_num_batches can only be used for single-protein datasets for now")
+            raise NotImplementedError(
+                "mol_num_batches can only be used for single-protein datasets for now"
+            )
 
         with h5py.File(os.path.join(base_dir, "allatom.h5"), "r") as data:
             coord = data["MINI"][name]["aa_coords"][:][::stride]
@@ -240,12 +246,12 @@ class Trpcage_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, 
-        base_dir: str, 
-        name: str,  
-        stride: int = 1, 
-        batch: Optional[int] = None, 
-        n_batches: Optional[int] = 1
+        self,
+        base_dir: str,
+        name: str,
+        stride: int = 1,
+        batch: Optional[int] = None,
+        n_batches: Optional[int] = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given name, returns np.ndarray's of its coordinates and forces at
@@ -283,7 +289,9 @@ class Trpcage_loader(DatasetLoader):
 
         if n_batches > 1:
             assert batch is not None, "batch id must be set if more than 1 batch"
-            chunk_ids = chunker([i for i in range(len(coords_fns))], n_batches=n_batches)
+            chunk_ids = chunker(
+                [i for i in range(len(coords_fns))], n_batches=n_batches
+            )
             coords_fns = coords_fns[np.array(chunk_ids[batch])]
             forces_fns = forces_fns[np.array(chunk_ids[batch])]
 
@@ -312,12 +320,12 @@ class Cln_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, 
-        base_dir: str, 
-        name: str,  
-        stride: int = 1, 
-        batch: Optional[int] = None, 
-        n_batches: Optional[int] = 1
+        self,
+        base_dir: str,
+        name: str,
+        stride: int = 1,
+        batch: Optional[int] = None,
+        n_batches: Optional[int] = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given name, returns np.ndarray's of its coordinates and forces at
@@ -351,7 +359,9 @@ class Cln_loader(DatasetLoader):
 
         if n_batches > 1:
             assert batch is not None, "batch id must be set if more than 1 batch"
-            chunk_ids = chunker([i for i in range(len(coords_fns))], n_batches=n_batches)
+            chunk_ids = chunker(
+                [i for i in range(len(coords_fns))], n_batches=n_batches
+            )
             coords_fns = coords_fns[np.array(chunk_ids[batch])]
             forces_fns = forces_fns[np.array(chunk_ids[batch])]
 
@@ -368,6 +378,7 @@ class Cln_loader(DatasetLoader):
         aa_coords = np.concatenate(aa_coord_list)
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces
+
 
 class BBA_loader(DatasetLoader):
     """
@@ -394,12 +405,12 @@ class BBA_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, 
-        base_dir: str, 
-        name: str,  
-        stride: int = 1, 
-        batch: Optional[int] = None, 
-        n_batches: Optional[int] = 1
+        self,
+        base_dir: str,
+        name: str,
+        stride: int = 1,
+        batch: Optional[int] = None,
+        n_batches: Optional[int] = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given name, returns np.ndarray's of its coordinates and forces at
@@ -420,9 +431,7 @@ class BBA_loader(DatasetLoader):
             if greater than 1, divide the total trajectories to load into n_batches chunks
         """
         coords_fns = natsorted(
-            glob(
-                os.path.join(base_dir, f"coords_nowater/bba_coor_folding-bba_*.npy")
-            )
+            glob(os.path.join(base_dir, f"coords_nowater/bba_coor_folding-bba_*.npy"))
         )
 
         forces_fns = [
@@ -437,7 +446,9 @@ class BBA_loader(DatasetLoader):
 
         if n_batches > 1:
             assert batch is not None, "batch id must be set if more than 1 batch"
-            chunk_ids = chunker([i for i in range(len(coords_fns))], n_batches=n_batches)
+            chunk_ids = chunker(
+                [i for i in range(len(coords_fns))], n_batches=n_batches
+            )
             coords_fns = coords_fns[np.array(chunk_ids[batch])]
             forces_fns = forces_fns[np.array(chunk_ids[batch])]
 
@@ -455,6 +466,7 @@ class BBA_loader(DatasetLoader):
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces
 
+
 class Villin_loader(DatasetLoader):
     def get_traj_top(self, name: str, pdb_fn: str):
         pdb = md.load(pdb_fn.format(name))
@@ -463,14 +475,14 @@ class Villin_loader(DatasetLoader):
         )
         top_dataframe = aa_traj.topology.to_dataframe()[0]
         return aa_traj, top_dataframe
-    
+
     def load_coords_forces(
-        self, 
-        base_dir: str, 
-        name: str,  
-        stride: int = 1, 
-        batch: Optional[int] = None, 
-        n_batches: Optional[int] = 1
+        self,
+        base_dir: str,
+        name: str,
+        stride: int = 1,
+        batch: Optional[int] = None,
+        n_batches: Optional[int] = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given name, returns np.ndarray's of its coordinates and forces at
@@ -491,23 +503,19 @@ class Villin_loader(DatasetLoader):
             if greater than 1, divide the total trajectories to load into n_batches chunks
         """
         coords_fns = sorted(
-            glob(
-                os.path.join(base_dir, f"{name}/*_coords.npy")
-            )
-        ) # combining all trajectories from single starting structure
+            glob(os.path.join(base_dir, f"{name}/*_coords.npy"))
+        )  # combining all trajectories from single starting structure
 
-        forces_fns = sorted(
-            glob(
-                os.path.join(base_dir, f"{name}/*_forces.npy")
-            )
-        )
+        forces_fns = sorted(glob(os.path.join(base_dir, f"{name}/*_forces.npy")))
 
         coords_fns = np.array(coords_fns)
         forces_fns = np.array(forces_fns)
 
         if n_batches > 1:
             assert batch is not None, "batch id must be set if more than 1 batch"
-            chunk_ids = chunker([i for i in range(len(coords_fns))], n_batches=n_batches)
+            chunk_ids = chunker(
+                [i for i in range(len(coords_fns))], n_batches=n_batches
+            )
             coords_fns = coords_fns[np.array(chunk_ids[batch])]
             forces_fns = forces_fns[np.array(chunk_ids[batch])]
 
@@ -520,7 +528,7 @@ class Villin_loader(DatasetLoader):
 
             aa_coord_list.append(coords[::stride])
             aa_force_list.append(forces[::stride])
-        
+
         aa_coords = np.concatenate(aa_coord_list)
         aa_forces = np.concatenate(aa_force_list)
         return aa_coords, aa_forces
@@ -551,12 +559,12 @@ class OPEP_loader(DatasetLoader):
         return aa_traj, top_dataframe
 
     def load_coords_forces(
-        self, 
-        base_dir: str, 
-        name: str,  
-        stride: int = 1, 
-        batch: Optional[int] = None, 
-        n_batches: Optional[int] = 1
+        self,
+        base_dir: str,
+        name: str,
+        stride: int = 1,
+        batch: Optional[int] = None,
+        n_batches: Optional[int] = 1,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For a given name, returns np.ndarray's of its coordinates and forces at
@@ -577,14 +585,20 @@ class OPEP_loader(DatasetLoader):
             if greater than 1, divide the total trajectories to load into n_batches chunks
         """
         if n_batches > 1:
-            raise NotImplementedError("mol_num_batches can only be used for single-protein datasets for now")
+            raise NotImplementedError(
+                "mol_num_batches can only be used for single-protein datasets for now"
+            )
 
-        coord_files = sorted(glob(os.path.join(base_dir, f"coords_nowater/opep_{name}/*.npy")))
+        coord_files = sorted(
+            glob(os.path.join(base_dir, f"coords_nowater/opep_{name}/*.npy"))
+        )
         if len(coord_files) == 0:
             coord_files = sorted(
                 glob(os.path.join(base_dir, f"coords_nowater/coor_opep_{name}_*.npy"))
             )
-        force_files = sorted(glob(os.path.join(base_dir, f"forces_nowater/opep_{name}/*.npy")))
+        force_files = sorted(
+            glob(os.path.join(base_dir, f"forces_nowater/opep_{name}/*.npy"))
+        )
         if len(force_files) == 0:
             force_files = sorted(
                 glob(os.path.join(base_dir, f"forces_nowater/force_opep_{name}_*.npy"))

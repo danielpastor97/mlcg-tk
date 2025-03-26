@@ -32,7 +32,7 @@ def produce_delta_forces(
     device: str,
     batch_size: int,
     force_tag: Optional[str] = None,
-    mol_num_batches: Optional[int] = 1
+    mol_num_batches: Optional[int] = 1,
 ):
     """
     Removes prior energy terms from input forces to produce delta force input
@@ -59,7 +59,7 @@ def produce_delta_forces(
     force_tag: str
         Optional tag to identify input for a particular run of delta force calculation
     mol_num_batches : int
-        If greater than 1, will load each molecule data from the specified number of batches 
+        If greater than 1, will load each molecule data from the specified number of batches
         that were be treated as different samples
     """
 

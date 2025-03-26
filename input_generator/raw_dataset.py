@@ -637,7 +637,6 @@ class SampleCollection:
             raise ValueError(
                 f"`n_mol_batch` should be a positive integer, not {mol_num_batches}"
             )
-
         for bat_list in pos_names_lists:
             save_templ = os.path.join(
                 training_data_dir,
@@ -649,12 +648,12 @@ class SampleCollection:
             )
             if not os.path.isfile(f"{save_templ}cg_coords.npy"):
                 warnings.warn(
-                    f"Sample {self.name} has missing CG coords - This entry will be skipped"
+                    f"Sample {self.name} has missing CG coords at {save_templ} - This entry will be skipped"
                 )
                 return False
             elif not os.path.isfile(f"{save_templ_forces}delta_forces.npy"):
                 warnings.warn(
-                    f"Sample {self.name} has missing delta forces - This entry will be skipped"
+                    f"Sample {self.name} has missing delta forces at {save_templ_forces}- This entry will be skipped"
                 )
                 return False
         return True
@@ -692,9 +691,7 @@ class SampleCollection:
         cg_embeds = np.load(f"{mol_save_templ}cg_embeds.npy")
         cg_pdb = md.load(f"{mol_save_templ}cg_structure.pdb")
         # load NLs
-        ofile = (
-            f"{mol_save_templ}prior_nls{get_output_tag(prior_tag, placement='after')}.pkl"
-        )
+        ofile = f"{mol_save_templ}prior_nls{get_output_tag(prior_tag, placement='after')}.pkl"
 
         with open(ofile, "rb") as f:
             cg_prior_nls = pickle.load(f)

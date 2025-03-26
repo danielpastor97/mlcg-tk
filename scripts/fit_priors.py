@@ -43,7 +43,7 @@ def compute_statistics(
     save_figs: bool = True,
     save_sample_statistics: bool = False,
     weights_template_fn: Optional[str] = None,
-    mol_num_batches: Optional[int] = 1
+    mol_num_batches: Optional[int] = 1,
 ):
     """
     Computes structural features and accumulates statistics on dataset samples
@@ -79,7 +79,7 @@ def compute_statistics(
     weights_template_fn : str
         Template file location of weights to use for accumulating statistics
     mol_num_batches : int
-        If greater than 1, will save each molecule data into the specified number of batches 
+        If greater than 1, will save each molecule data into the specified number of batches
         that will be treated as different samples
     """
 
