@@ -5,7 +5,7 @@ SCRIPT_DIR = osp.abspath(osp.dirname(__file__))
 sys.path.insert(0, osp.join(SCRIPT_DIR, "../"))
 
 from input_generator.raw_dataset import RawDataset
-from input_generator.utils import get_output_tag, CGFilesNotFound
+from input_generator.utils import get_output_tag
 from tqdm import tqdm
 from time import ctime
 import numpy as np
@@ -97,32 +97,30 @@ def package_training_data(
         with h5py.File(fnout_h5, "w") as f:
             metaset = f.create_group(dataset_name)
             for samples in tqdm(dataset, f"Packaging {dataset_name} dataset..."):
-                try:
-                    if mol_num_batches > 1 and not keep_batches:
-                        (
-                            cg_coords,
-                            cg_delta_forces,
-                            cg_embeds,
-                        ) = samples.load_all_batches_training_inputs(
-                            training_data_dir=training_data_dir,
-                            force_tag=force_tag,
-                            mol_num_batches=mol_num_batches,
-                        )
-                    else:
-                        (
-                            cg_coords,
-                            cg_delta_forces,
-                            cg_embeds,
-                        ) = samples.load_training_inputs(
-                            training_data_dir=training_data_dir,
-                            force_tag=force_tag,
-                        )
-                except CGFilesNotFound as e:
-                    print(
-                        f"Sample {samples.name} has missing files - This entry will be skipped",
-                        f", {e}",
-                    )
+                if not samples.has_delta_forces_output(
+                    training_data_dir=training_data_dir, force_tag=force_tag
+                ):
                     continue
+
+                if mol_num_batches > 1 and not keep_batches:
+                    (
+                        cg_coords,
+                        cg_delta_forces,
+                        cg_embeds,
+                    ) = samples.load_all_batches_training_inputs(
+                        training_data_dir=training_data_dir,
+                        force_tag=force_tag,
+                        mol_num_batches=mol_num_batches,
+                    )
+                else:
+                    (
+                        cg_coords,
+                        cg_delta_forces,
+                        cg_embeds,
+                    ) = samples.load_training_inputs(
+                        training_data_dir=training_data_dir,
+                        force_tag=force_tag,
+                    )
 
                 name = f"{samples.tag}{samples.name}"
                 hdf_group = metaset.create_group(name)

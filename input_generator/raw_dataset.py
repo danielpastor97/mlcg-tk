@@ -16,7 +16,6 @@ from mlcg.neighbor_list.neighbor_list import make_neighbor_list
 from mlcg.data.atomic_data import AtomicData
 
 from .utils import (
-    CGFilesNotFound,
     map_cg_topology,
     filter_cis_frames,
     slice_coord_forces,
@@ -377,7 +376,7 @@ class SampleCollection:
         cg_forces:
             CG forces; if None, will check whether these are saved as an object attribute.
         """
-        if not os.path.exists(save_dir):
+        if not os.path.isdir(save_dir):
             os.makedirs(save_dir)
 
         if not hasattr(self, "cg_atom_indices"):
@@ -593,12 +592,72 @@ class SampleCollection:
         save_templ = os.path.join(
             save_dir, get_output_tag([self.tag, self.name], placement="before")
         )
-        if not os.path.exists(f"{save_templ}cg_coords.npy"):
+        if not os.path.isfile(f"{save_templ}cg_coords.npy"):
+            warnings.warn(
+                f"Sample {self.name} has no saved CG coords - This entry will be skipped"
+            )
             return False
-        elif not os.path.exists(f"{save_templ}cg_forces.npy"):
+        elif not os.path.isfile(f"{save_templ}cg_forces.npy"):
+            warnings.warn(
+                f"Sample {self.name} has no saved CG forces - This entry will be skipped"
+            )
             return False
         else:
             return True
+
+    def has_delta_forces_output(
+        self, training_data_dir: str, force_tag: str = "", mol_num_batches: int = 1
+    ) -> bool:
+        """
+        Returns True if cg data exists for this SampleCollection
+
+        Used to skip processing of molecules where all frames have been removed by cis conformation filtering
+
+        Parameters
+        ----------
+        training_data_dir:
+            Location of saved cg data
+        prior_tag:
+            String identifying the specific combination of prior terms
+        mol_num_batches : int
+            number of batches in which the molecule is suposed to be saved
+
+        Returns
+        -------
+        True if cg output for the sample corresponding to prior_tag is present in training_data_dir
+        False otherwise
+        """
+        if mol_num_batches == 1:
+            pos_names_lists = [[self.tag, self.name]]
+        elif mol_num_batches > 1:
+            pos_names_lists = [
+                [self.tag, self.name, f"batch_{b}"] for b in range(mol_num_batches)
+            ]
+        else:
+            raise ValueError(
+                f"`n_mol_batch` should be a positive integer, not {mol_num_batches}"
+            )
+
+        for bat_list in pos_names_lists:
+            save_templ = os.path.join(
+                training_data_dir,
+                get_output_tag(bat_list, placement="before"),
+            )
+            save_templ_forces = os.path.join(
+                training_data_dir,
+                get_output_tag(bat_list + [force_tag], placement="before"),
+            )
+            if not os.path.isfile(f"{save_templ}cg_coords.npy"):
+                warnings.warn(
+                    f"Sample {self.name} has missing CG coords - This entry will be skipped"
+                )
+                return False
+            elif not os.path.isfile(f"{save_templ_forces}delta_forces.npy"):
+                warnings.warn(
+                    f"Sample {self.name} has missing delta forces - This entry will be skipped"
+                )
+                return False
+        return True
 
     def load_cg_output(self, save_dir: str, prior_tag: str = "") -> Tuple:
         """
@@ -622,11 +681,11 @@ class SampleCollection:
         save_templ = os.path.join(
             save_dir, get_output_tag([self.tag, self.name], placement="before")
         )
-        if os.path.exists(f"{save_templ}cg_coords.npy"):
+        if os.path.isfile(f"{save_templ}cg_coords.npy"):
             cg_coords = np.load(f"{save_templ}cg_coords.npy")
         else:
             cg_coords = None
-        if os.path.exists(f"{save_templ}cg_forces.npy"):
+        if os.path.isfile(f"{save_templ}cg_forces.npy"):
             cg_forces = np.load(f"{save_templ}cg_forces.npy")
         else:
             cg_forces = None
@@ -650,7 +709,7 @@ class SampleCollection:
         weights_template_fn: Optional[str],
     ):
         """
-        Loads saved CG data nad splits these into batches for further processing
+        Loads saved CG data and splits these into batches for further processing
 
         Parameters
         ----------
@@ -708,18 +767,12 @@ class SampleCollection:
         )
         cg_embeds = np.load(f"{mol_save_templ}cg_embeds.npy")
         coord_file_path = f"{save_templ}cg_coords.npy"
-        if not os.path.isfile(coord_file_path):
-            raise CGFilesNotFound(f"cg coords were not found for {self.name}")
         cg_coords = np.load(coord_file_path)[::stride]
         save_templ_forces = os.path.join(
             training_data_dir,
             get_output_tag([self.tag, self.name, force_tag], placement="before"),
         )
         force_file_path = f"{save_templ_forces}delta_forces.npy"
-        if not os.path.isfile(force_file_path):
-            raise CGFilesNotFound(
-                f"cg forces were not found for {self.name} with force {force_tag}"
-            )
         cg_forces = np.load(force_file_path)[::stride]
         return cg_coords, cg_forces, cg_embeds
 
