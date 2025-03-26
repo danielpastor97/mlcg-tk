@@ -693,7 +693,7 @@ class SampleCollection:
         cg_pdb = md.load(f"{mol_save_templ}cg_structure.pdb")
         # load NLs
         ofile = (
-            f"{save_templ}prior_nls{get_output_tag(prior_tag, placement='after')}.pkl"
+            f"{mol_save_templ}prior_nls{get_output_tag(prior_tag, placement='after')}.pkl"
         )
 
         with open(ofile, "rb") as f:
