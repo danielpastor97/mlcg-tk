@@ -98,7 +98,9 @@ def package_training_data(
             metaset = f.create_group(dataset_name)
             for samples in tqdm(dataset, f"Packaging {dataset_name} dataset..."):
                 if not samples.has_delta_forces_output(
-                    training_data_dir=training_data_dir, force_tag=force_tag
+                    training_data_dir=training_data_dir,
+                    force_tag=force_tag,
+                    mol_num_batches=mol_num_batches,
                 ):
                     continue
 
