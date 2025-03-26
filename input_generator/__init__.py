@@ -1,5 +1,6 @@
 from .raw_dataset import RawDataset, SampleCollection
 from .raw_data_loader import (
+    DatasetLoader,
     CATH_loader,
     DIMER_loader,
     Villin_loader,
