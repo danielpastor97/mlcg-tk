@@ -22,6 +22,8 @@ from .utils import (
     get_terminal_atoms,
     get_edges_and_orders,
     get_output_tag,
+    LIPID_MAPPINGS,
+    normalize_to_one,
 )
 from .prior_gen import PriorBuilder
 
@@ -175,6 +177,8 @@ class SampleCollection:
         embedding_function: str,
         embedding_dict: str,
         skip_residues: Optional[List[str]] = None,
+        atomistic_ref_traj: Optional[md.Trajectory] = None,
+        atomistic_ref_top: Optional[md.Topology] = None,
     ):
         """
         Applies mapping function to atomistic topology to obtain CG representation.
@@ -223,12 +227,26 @@ class SampleCollection:
         ]
         self.cg_dataframe = cg_df
 
-        cg_map = np.zeros((len(cg_atom_idx), self.input_traj.n_atoms))
-        cg_map[[i for i in range(len(cg_atom_idx))], cg_atom_idx] = 1
+        if atomistic_ref_traj is not None:
+            ## create a center of mass mapping scheme
+            cg_map = np.zeros((len(cg_atom_idx), atomistic_ref_traj.n_atoms))
+            for res in self.input_traj.topology.residues:
+                for bead in LIPID_MAPPINGS[res.name].keys():
+                    bead_indices = atomistic_ref_top[(atomistic_ref_top.resSeq == res.resSeq) & (atomistic_ref_top.name.isin(LIPID_MAPPINGS[res.name][bead]))].index
+                    # this below is for center of mass mapping
+                    # bead_weights = normalize_to_one([a.element.mass for a in atomistic_ref_traj.atom_slice(bead_indices).topology.atoms])
+                    # this below is for the center of geometry
+                    bead_weights = normalize_to_one([1 for a in atomistic_ref_traj.atom_slice(bead_indices).topology.atoms])
+                    for i, idx in enumerate(bead_indices):
+                        cg_map[self.top_dataframe[(self.top_dataframe.resSeq == res.resSeq) & (self.top_dataframe.name == bead)].index[0], idx] = bead_weights[i] 
+        else:
+            cg_map = np.zeros((len(cg_atom_idx), self.input_traj.n_atoms))
+            cg_map[[i for i in range(len(cg_atom_idx))], cg_atom_idx] = 1
+            if not all([row.tolist().count(1) == 1 for row in cg_map]):
+                warnings.warn("WARNING: Slice mapping matrix is not linear.")
+
         if not all([sum(row) == 1 for row in cg_map]):
             warnings.warn("WARNING: Slice mapping matrix is not unique.")
-        if not all([row.tolist().count(1) == 1 for row in cg_map]):
-            warnings.warn("WARNING: Slice mapping matrix is not linear.")
 
         self.cg_map = cg_map
 

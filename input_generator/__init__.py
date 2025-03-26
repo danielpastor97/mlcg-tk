@@ -7,6 +7,7 @@ from .raw_data_loader import (
     Cln_loader,
     BBA_loader,
     OPEP_loader,
+    DPPC_loader,
 )
 
 
@@ -14,8 +15,10 @@ from .embedding_maps import (
     CGEmbeddingMap,
     CGEmbeddingMapFiveBead,
     CGEmbeddingMapCA,
+    CGEmbeddingMapLipidsMartini,
     embedding_fivebead,
     embedding_ca,
+    embedding_lipids_martini,
 )
 
 

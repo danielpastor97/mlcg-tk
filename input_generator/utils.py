@@ -15,6 +15,23 @@ from aggforce import (LinearMap,
 
 from .prior_gen import PriorBuilder
 
+LIPID_MAPPINGS = {
+        'DPPC': {
+                'NC3' : ['N', 'C13', 'H13A', 'H13B', 'H13C', 'C14', 'H14A', 'H14B', 'H14C', 'C15', 'H15A', 'H15B', 'H15C', 'C12', 'H12A', 'H12B', 'C11', 'H11A', 'H11B'],      
+                'PO4'  : ['P', 'O13', 'O14', 'O11', 'O12'],
+                'GL1'  : ['C2', 'HS', 'O21', 'C21', 'O22', 'C1', 'HA', 'HB' ],
+                'GL2'  : ['C3', 'HX', 'HY', 'O31', 'O32', 'C31'],
+                'C1A'  : ['C22', 'H2R', 'H2S', 'C23', 'H3R', 'H3S', 'C24', 'H4R', 'H4S', 'C25', 'H5R', 'H5S'],
+                'C2A'  : ['C26', 'H6R', 'H6S', 'C27', 'H7R', 'H7S', 'C28', 'H8R', 'H8S', 'C29', 'H9R', 'H9S'],
+                'C3A'  : ['C210', 'H10R', 'H10S', 'C211', 'H11R', 'H11S', 'C212', 'H12R', 'H12S', 'C213', 'H13R', 'H13S'],
+                'C4A'  : ['C214', 'H14R', 'H14S', 'C215', 'H15R', 'H15S', 'C216', 'H16R', 'H16S', 'H16T'],
+                'C1B'  : ['C32', 'H2Y', 'H2X', 'C33', 'H3Y', 'H3X', 'C34', 'H4Y', 'H4X', 'C35', 'H5Y', 'H5X'],
+                'C2B'  : ['C36', 'H6Y', 'H6X', 'C37', 'H7Y', 'H7X', 'C38', 'H8Y', 'H8X', 'C39', 'H9Y', 'H9X'],
+                'C3B'  : ['C310', 'H10Y', 'H10X', 'C311', 'H11Y', 'H11X', 'C312', 'H12Y', 'H12X', 'C313', 'H13Y', 'H13X'],
+                'C4B'  : ['C314', 'H14Y', 'H14X', 'C315', 'H15Y', 'H15X', 'C316', 'H16Y', 'H16X', 'H16Z'],
+        }
+}
+
 
 def with_attrs(**func_attrs):
     """Set attributes in the decorated function, at definition time.
@@ -566,3 +583,17 @@ def get_dihedral_groups(
             atom_groups[label].append(np.concatenate(dihedral))
 
     return atom_groups
+
+def normalize_to_one(numbers):
+    total = sum(numbers)
+    if total == 0:
+        raise ValueError("Sum of the input list is zero, cannot normalize.")
+    
+    # Normalize the numbers
+    normalized = [x / total for x in numbers]
+    
+    # Adjust the last element to account for floating-point inaccuracies
+    correction = 1 - sum(normalized)
+    normalized[-1] += correction
+    
+    return normalized
