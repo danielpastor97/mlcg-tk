@@ -32,6 +32,23 @@ LIPID_MAPPINGS = {
         }
 }
 
+LIPID_BONDS = {
+    'DPPC': [
+        (0, 1), # N-P
+        (1, 2), # P-C2
+        (1, 3), # P-C3
+        (2, 3), # C2-C3
+        (2, 4), # C2-C24
+        (4, 5), # C24-C28
+        (5, 6), # C28-C212
+        (6, 7), # C212-C216
+        (3, 8), # C3-C34
+        (8, 9), # C34-C38
+        (9, 10), # C38-C312
+        (10, 11), # C312-C316
+    ],
+}
+
 
 def with_attrs(**func_attrs):
     """Set attributes in the decorated function, at definition time.
@@ -597,3 +614,22 @@ def normalize_to_one(numbers):
     normalized[-1] += correction
     
     return normalized
+
+def add_bonds_to_cg_topology(cg_top: md.Topology):
+    """
+    Parameters
+    ----------
+    cg_top:
+        MDTraj topology object of CG topology.
+
+    Returns
+    -------
+    MDTraj topology object with bonds added.
+    """
+    # add bonds to CG topology
+    for residue in cg_top.residues:
+        res_atoms = [a for a in residue.atoms]
+        for bond in LIPID_BONDS[residue.name]:
+            cg_top.add_bond(res_atoms[bond[0]], res_atoms[bond[1]])
+
+    return cg_top   

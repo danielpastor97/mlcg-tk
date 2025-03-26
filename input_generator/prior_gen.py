@@ -11,6 +11,9 @@ from mlcg.nn.prior import (
     GeneralBonds,
     GeneralAngles,
 )
+
+from .prior_fit.raw_angle import HarmonicRawAngle
+
 from mlcg.nn.gradients import GradientsOut
 
 from mlcg.data import AtomicData
@@ -219,7 +222,7 @@ class Angles(PriorBuilder):
             ),
             nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
-            prior_cls=GeneralAngles,
+            prior_cls=HarmonicRawAngle,
         )
         self.name = name
         self.type = "angles"

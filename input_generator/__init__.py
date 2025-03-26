@@ -39,6 +39,7 @@ from .prior_fit import (
     fit_repulsion_from_potential_estimates,
     fit_repulsion_from_values,
     repulsion,
+    HarmonicRawAngle,
 )
 from .prior_fit.fit_potentials import fit_potentials
 from .prior_fit import fit_dihedral_from_potential_estimates, dihedral

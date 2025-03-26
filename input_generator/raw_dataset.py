@@ -21,6 +21,7 @@ from .utils import (
     slice_coord_forces,
     get_terminal_atoms,
     get_edges_and_orders,
+    add_bonds_to_cg_topology,
     get_output_tag,
     LIPID_MAPPINGS,
     normalize_to_one,
@@ -556,6 +557,8 @@ class SampleCollection:
 
         # get atom groups for edges and orders for all prior terms
         cg_top = self.input_traj.atom_slice(self.cg_atom_indices).topology
+
+        cg_top = add_bonds_to_cg_topology(cg_top)
 
         # we need to add an extra step for CA case: in this situation, the bonds
         atoms = list(cg_top.atoms)

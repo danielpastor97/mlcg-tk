@@ -144,6 +144,8 @@ def build_neighborlists(
     cg_atoms: List[str],
     embedding_map: CGEmbeddingMap,
     embedding_func: Callable,
+    martini_map: bool,
+    martini_ref: str,
     skip_residues: List[str],
     prior_tag: str,
     prior_builders: List[PriorBuilder],
@@ -207,11 +209,21 @@ def build_neighborlists(
             samples.name, pdb_template_fn
         )
 
+        if martini_map:
+            atomistic_ref_traj, atomistic_ref_top = sample_loader.get_traj_top(
+                samples.name, martini_ref
+            ) 
+        else:
+            atomistic_ref_traj = None
+            atomistic_ref_top = None
+
         samples.apply_cg_mapping(
             cg_atoms=cg_atoms,
             embedding_function=embedding_func,
             embedding_dict=embedding_map,
             skip_residues=skip_residues,
+            atomistic_ref_traj=atomistic_ref_traj,
+            atomistic_ref_top=atomistic_ref_top,
         )
 
         prior_nls = samples.get_prior_nls(
