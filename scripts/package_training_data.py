@@ -35,7 +35,7 @@ def package_training_data(
     val_mols: Optional[List] = None,
     random_state: Optional[str] = None,
     mol_num_batches: Optional[int] = 1,
-    keep_batches: Optional[bool] = False
+    keep_batches: Optional[bool] = False,
 ):
     """
     Computes structural features and accumulates statistics on dataset samples
@@ -75,15 +75,17 @@ def package_training_data(
     random_state : Optional[str]
         Controls shuffling applied to the data before applying the split
     mol_num_batches : int
-        If greater than 1, will load each molecule data from the specified number of batches 
+        If greater than 1, will load each molecule data from the specified number of batches
         that were be treated as different samples
     keep_batches : bool
-        If set to True, batches will be put as individual molecules in the h5 dataset and 
+        If set to True, batches will be put as individual molecules in the h5 dataset and
         the partition file will be built accordingly. Otherwise, if batches exist, they will be
         accumulated into one single molecule.
     """
     if keep_batches and mol_num_batches > 1:
-        dataset = RawDataset(dataset_name, names, dataset_tag, n_batches=mol_num_batches)
+        dataset = RawDataset(
+            dataset_name, names, dataset_tag, n_batches=mol_num_batches
+        )
     else:
         dataset = RawDataset(dataset_name, names, dataset_tag)
     output_tag = get_output_tag([dataset_name, force_tag], placement="after")
@@ -96,35 +98,30 @@ def package_training_data(
             metaset = f.create_group(dataset_name)
             for samples in tqdm(dataset, f"Packaging {dataset_name} dataset..."):
                 try:
-<<<<<<< HEAD
-                    (
-                        cg_coords,
-                        cg_delta_forces,
-                        cg_embeds,
-                    ) = samples.load_training_inputs(
-                        training_data_dir=training_data_dir,
-                        force_tag=force_tag,
-                    )
+                    if mol_num_batches > 1 and not keep_batches:
+                        (
+                            cg_coords,
+                            cg_delta_forces,
+                            cg_embeds,
+                        ) = samples.load_all_batches_training_inputs(
+                            training_data_dir=training_data_dir,
+                            force_tag=force_tag,
+                            mol_num_batches=mol_num_batches,
+                        )
+                    else:
+                        (
+                            cg_coords,
+                            cg_delta_forces,
+                            cg_embeds,
+                        ) = samples.load_training_inputs(
+                            training_data_dir=training_data_dir,
+                            force_tag=force_tag,
+                        )
                 except CGFilesNotFound as e:
                     print(
                         f"Sample {samples.name} has missing files - This entry will be skipped",
                         f", {e}",
                     )
-=======
-                    if mol_num_batches > 1 and not keep_batches:
-                        cg_coords, cg_delta_forces, cg_embeds = samples.load_all_batches_training_inputs(
-                            training_data_dir=training_data_dir,
-                            force_tag=force_tag,
-                            mol_num_batches=mol_num_batches
-                        )
-                    else:
-                        cg_coords, cg_delta_forces, cg_embeds = samples.load_training_inputs(
-                            training_data_dir=training_data_dir,
-                            force_tag=force_tag,
-                        )
-                except FileNotFoundError:
-                    print("Skipping molecule : ", samples.name)
->>>>>>> main
                     continue
 
                 name = f"{samples.tag}{samples.name}"
@@ -142,8 +139,16 @@ def package_training_data(
         fnout_part = osp.join(save_dir, f"partition{output_tag}.yaml")
         if single_protein:
             if keep_batches and mol_num_batches > 1:
-                train_mols = [f"{dataset_tag}{name}_batch_{b}" for b in range(mol_num_batches) for name in names]
-                val_mols = [f"{dataset_tag}{name}_batch_{b}" for b in range(mol_num_batches) for name in names]
+                train_mols = [
+                    f"{dataset_tag}{name}_batch_{b}"
+                    for b in range(mol_num_batches)
+                    for name in names
+                ]
+                val_mols = [
+                    f"{dataset_tag}{name}_batch_{b}"
+                    for b in range(mol_num_batches)
+                    for name in names
+                ]
             else:
                 train_mols = [f"{dataset_tag}{name}" for name in names]
                 val_mols = [f"{dataset_tag}{name}" for name in names]
@@ -202,7 +207,7 @@ def package_training_data(
                     np.arange(n_frames),
                     train_size=train_size,
                     shuffle=True,
-                    random_state=random_state
+                    random_state=random_state,
                 )
                 mol_output_tag = get_output_tag([mol, force_tag], placement="after")
                 train_fnout = osp.join(save_dir, f"train_idx{mol_output_tag}.npy")
@@ -211,8 +216,12 @@ def package_training_data(
                 np.save(train_fnout, train_frames)
                 np.save(val_fnout, val_frames)
 
-                partition_opts["train"]["metasets"][dataset_name]["detailed_indices"][mol] = train_fnout
-                partition_opts["val"]["metasets"][dataset_name]["detailed_indices"][mol] = val_fnout
+                partition_opts["train"]["metasets"][dataset_name]["detailed_indices"][
+                    mol
+                ] = train_fnout
+                partition_opts["val"]["metasets"][dataset_name]["detailed_indices"][
+                    mol
+                ] = val_fnout
         with open(fnout_part, "w") as ofile:
             yaml.dump(partition_opts, ofile)
 
