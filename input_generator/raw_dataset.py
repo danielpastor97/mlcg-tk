@@ -154,12 +154,7 @@ class SampleCollection:
         File location of atomistic structure to be used for topology.
     """
 
-    def __init__(
-        self,
-        name: str,
-        tag: str,
-        n_batches: Optional[int] = 1
-    ) -> None:
+    def __init__(self, name: str, tag: str, n_batches: Optional[int] = 1) -> None:
         self.name = name
         if "_batch_" in name:
             self.mol_name = name.split("_batch_")[0]
@@ -444,10 +439,7 @@ class SampleCollection:
             else:
                 np.save(f"{mol_save_templ}cg_force_map.npy", self.force_map)
 
-    def load_cg_force_map(
-        self,
-        save_dir: str
-    ) -> np.ndarray:
+    def load_cg_force_map(self, save_dir: str) -> np.ndarray:
         """
         Helper function to load a previously saved force map for the molecule in the sample
 
@@ -455,13 +447,15 @@ class SampleCollection:
         -----------
         save_dir: str
             path to the directory where the force map was saved in the first batch of the molecule in the sample
-        
+
         Returns:
         --------
         force_map: np.ndarray
             force map corresponding to the molecule in self
         """
-        map_save_templ = os.path.join(save_dir, get_output_tag([self.tag, self.mol_name], placement="before"))
+        map_save_templ = os.path.join(
+            save_dir, get_output_tag([self.tag, self.mol_name], placement="before")
+        )
         force_map = np.load(f"{map_save_templ}cg_force_map.npy")
         return force_map
 
@@ -706,7 +700,8 @@ class SampleCollection:
         Tuple of np.ndarrays containing coarse grained coordinates, delta forces, and embeddings,
         """
         mol_save_templ = os.path.join(
-            training_data_dir, get_output_tag([self.tag, self.mol_name], placement="before")
+            training_data_dir,
+            get_output_tag([self.tag, self.mol_name], placement="before"),
         )
         save_templ = os.path.join(
             training_data_dir, get_output_tag([self.tag, self.name], placement="before")
@@ -727,21 +722,31 @@ class SampleCollection:
             )
         cg_forces = np.load(force_file_path)[::stride]
         return cg_coords, cg_forces, cg_embeds
-    
+
     def load_all_batches_training_inputs(
-        self, 
-        training_data_dir: str, 
-        force_tag: str = "", 
+        self,
+        training_data_dir: str,
+        force_tag: str = "",
         mol_num_batches: int = 1,
-        stride: int = 1
+        stride: int = 1,
     ):
-        mol_save_templ = os.path.join(training_data_dir, get_output_tag([self.tag, self.name], placement="before"))
+        mol_save_templ = os.path.join(
+            training_data_dir, get_output_tag([self.tag, self.name], placement="before")
+        )
         cg_embeds = np.load(f"{mol_save_templ}cg_embeds.npy")
         cg_coords = []
         cg_forces = []
         for b in range(mol_num_batches):
-            save_templ = os.path.join(training_data_dir, get_output_tag([self.tag, self.name, f"batch_{b}"], placement="before"))
-            save_templ_forces = os.path.join(training_data_dir, get_output_tag([self.tag, self.name, f"batch_{b}", force_tag], placement="before"))
+            save_templ = os.path.join(
+                training_data_dir,
+                get_output_tag([self.tag, self.name, f"batch_{b}"], placement="before"),
+            )
+            save_templ_forces = os.path.join(
+                training_data_dir,
+                get_output_tag(
+                    [self.tag, self.name, f"batch_{b}", force_tag], placement="before"
+                ),
+            )
 
             cg_coords.append(np.load(f"{save_templ}cg_coords.npy"))
             cg_forces.append(np.load(f"{save_templ_forces}delta_forces.npy"))
@@ -769,11 +774,11 @@ class RawDataset:
     """
 
     def __init__(
-        self, 
-        dataset_name: str, 
-        names: List[str], 
-        tag: str, 
-        n_batches: Optional[int] = 1
+        self,
+        dataset_name: str,
+        names: List[str],
+        tag: str,
+        n_batches: Optional[int] = 1,
     ) -> None:
         self.dataset_name = dataset_name
         self.names = names

@@ -20,7 +20,7 @@ def merge_statistics(
     prior_builders: List[PriorBuilder],
     names: List[str],
     tag: Optional[str] = None,
-    mol_num_batches: Optional[int] = 1
+    mol_num_batches: Optional[int] = 1,
 ):
     """
     Merges statistics computed for separate datasets or for individual samples of the same dataset.
