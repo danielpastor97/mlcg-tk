@@ -166,3 +166,5 @@ cython_debug/
 
 lip_data/*
 *pt
+sim/*
+mlcg-*
