@@ -89,7 +89,7 @@ def package_training_data(
     else:
         dataset = RawDataset(dataset_name, names, dataset_tag)
     output_tag = get_output_tag([dataset_name, force_tag], placement="after")
-
+    non_empty_names = []
     if save_h5:
         # Create H5 of training data
         fnout_h5 = osp.join(save_dir, f"{output_tag[1:]}.h5")
@@ -103,6 +103,8 @@ def package_training_data(
                     mol_num_batches=mol_num_batches,
                 ):
                     continue
+                else:
+                    non_empty_names.append(samples.mol_name)
 
                 if mol_num_batches > 1 and not keep_batches:
                     (
@@ -142,16 +144,16 @@ def package_training_data(
                 train_mols = [
                     f"{dataset_tag}{name}_batch_{b}"
                     for b in range(mol_num_batches)
-                    for name in names
+                    for name in non_empty_names
                 ]
                 val_mols = [
                     f"{dataset_tag}{name}_batch_{b}"
                     for b in range(mol_num_batches)
-                    for name in names
+                    for name in non_empty_names
                 ]
             else:
-                train_mols = [f"{dataset_tag}{name}" for name in names]
-                val_mols = [f"{dataset_tag}{name}" for name in names]
+                train_mols = [f"{dataset_tag}{name}" for name in non_empty_names]
+                val_mols = [f"{dataset_tag}{name}" for name in non_empty_names]
             if train_size == None:
                 raise ValueError(
                     "For single-protein partitions, a train size has to be specified"
@@ -169,15 +171,15 @@ def package_training_data(
                     )
 
                 train_mols, val_mols = train_test_split(
-                    [f"{dataset_tag}{name}" for name in names],
+                    [f"{dataset_tag}{name}" for name in non_empty_names],
                     train_size=train_size,
                     shuffle=True,
                     random_state=random_state,
                 )
             elif train_mols != None:
-                val_mols = deepcopy(names).remove(train_mols)
+                val_mols = deepcopy(non_empty_names).remove(train_mols)
             elif val_mols != None:
-                train_mols = deepcopy(names).remove(val_mols)
+                train_mols = deepcopy(non_empty_names).remove(val_mols)
 
         partition_opts = {"train": {}, "val": {}}
 
