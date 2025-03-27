@@ -5,12 +5,13 @@ import mdtraj as md
 import warnings
 from functools import wraps
 
-from aggforce import (LinearMap, 
-                    guess_pairwise_constraints, 
-                    project_forces, 
-                    constraint_aware_uni_map,
-                    qp_linear_map
-                    )
+from aggforce import (
+    LinearMap,
+    guess_pairwise_constraints,
+    project_forces,
+    constraint_aware_uni_map,
+    qp_linear_map,
+)
 
 
 from .prior_gen import PriorBuilder
@@ -34,9 +35,7 @@ def with_attrs(**func_attrs):
     return attr_decorator
 
 
-def get_output_tag(
-        tag_label: Union[List,str], placement: str="before"
-):
+def get_output_tag(tag_label: Union[List, str], placement: str = "before"):
     """
     Helper function for combining output tag labels neatly.
     Fixes issues of connecting/preceding '_' being included in some labels but not others.
@@ -58,7 +57,7 @@ def get_output_tag(
         for l in tag_label:
             if l in [None, "", " "]:
                 tag_label.remove(l)
-        joined_label = "_".join([l.strip('_') for l in tag_label])
+        joined_label = "_".join([l.strip("_") for l in tag_label])
         if placement == "before":
             return f"{joined_label}_"
         elif placement == "after":
@@ -132,12 +131,12 @@ def map_cg_topology(
 def batch_matmul(map_matrix, X, batch_size):
     """
     Perform matrix multiplication in chunks.
-    
+
     Parameters:
       map_matrix: np.ndarray of shape (N_CG_ats, N_FG_ats)
       X: np.ndarray of shape (M_frames, N_FG_ats, 3)
       batch_size: int, the number of rows (from the M dimension) to process at a time.
-    
+
     Returns:
       result: np.ndarray of shape (M_frames, N_CG_ats, 3)
     """
@@ -145,14 +144,15 @@ def batch_matmul(map_matrix, X, batch_size):
     M = X.shape[0]
     for i in range(0, M, batch_size):
         # Slice a batch along the M dimension
-        X_batch = X[i:i+batch_size]  # shape: (batch, N, 3)
+        X_batch = X[i : i + batch_size]  # shape: (batch, N, 3)
         # Perform matrix multiplication:
         # map_matrix (CG, FG) multiplied by each X_batch (FG, 3) gives (GC, 3) for each sample.
         # The broadcasting ensures the result is (batch, CG, 3)
-        result_batch = map_matrix @ X_batch  
+        result_batch = map_matrix @ X_batch
         results.append(result_batch)
     # Concatenate all chunks along the first axis (M dimension)
     return np.concatenate(results, axis=0)
+
 
 def chunker(array, n_batches):
     """
@@ -166,7 +166,7 @@ def chunker(array, n_batches):
     -----------
     array : np.ndarray or List
         The input array to be chunked.
-    n_batches : int 
+    n_batches : int
         The number of batches to divide the array into. Must be a positive
         integer and less than or equal to the length of the array.
 
@@ -190,17 +190,25 @@ def chunker(array, n_batches):
     """
     if n_batches == 1:
         return [array]
-    assert n_batches <= len(array), "n_batches needs to be smaller than the array to chunk"
+    assert n_batches <= len(
+        array
+    ), "n_batches needs to be smaller than the array to chunk"
     batched_array = []
     n_elts_per_batch = len(array) // n_batches
     for i in range(n_batches - 1):
-        batched_array.append(array[i*n_elts_per_batch:(i+1)*n_elts_per_batch])
+        batched_array.append(array[i * n_elts_per_batch : (i + 1) * n_elts_per_batch])
     # last batch might be larger, it contains the rest of the elements in the array
-    batched_array.append(array[(i+1)*n_elts_per_batch:])
+    batched_array.append(array[(i + 1) * n_elts_per_batch :])
     return batched_array
 
+
 def slice_coord_forces(
-    coords, forces, cg_map, mapping: str = "slice_aggregate", force_stride: int = 100, batch_size: Optional[int] = None
+    coords,
+    forces,
+    cg_map,
+    mapping: str = "slice_aggregate",
+    force_stride: int = 100,
+    batch_size: Optional[int] = None,
 ) -> Tuple:
     """
     Parameters
@@ -212,13 +220,13 @@ def slice_coord_forces(
     cg_map: [n_cg_atoms, n_atomistic_atoms]
         Linear map characterizing the atomistic to CG configurational map with shape.
     mapping:
-        Mapping scheme to be used, 
+        Mapping scheme to be used,
         Can be either a string, then must be either 'slice_aggregate' or 'slice_optimize',
         Or can be directly a numpy array to use for projection
     force_stride:
         Striding to use for force projection results
     batch_size:
-        Optional length of batch in which divide the AA mapping of coords and forces 
+        Optional length of batch in which divide the AA mapping of coords and forces
         to CG ones
 
     Returns
@@ -256,13 +264,13 @@ def slice_coord_forces(
             )
         force_map_matrix = force_agg_results["tmap"].force_map.standard_matrix
     elif isinstance(mapping, np.ndarray):
-        force_map_matrix = mapping 
+        force_map_matrix = mapping
     else:
         raise RuntimeError(
             f"Force mapping {mapping} is neither a string nor a numpy array."
         )
 
-    if batch_size != None: 
+    if batch_size != None:
         cg_coords = batch_matmul(config_map_matrix, coords, batch_size=batch_size)
         cg_forces = batch_matmul(force_map_matrix, forces, batch_size=batch_size)
     else:
@@ -271,48 +279,49 @@ def slice_coord_forces(
 
     return cg_coords, cg_forces, force_map_matrix
 
+
 def filter_cis_frames(
-        coords: np.ndarray,
-        forces: np.ndarray,
-        topology: md.Topology,
-        verbose: bool = True
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        filters out frames containing cis-omega angles
+    coords: np.ndarray, forces: np.ndarray, topology: md.Topology, verbose: bool = True
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    filters out frames containing cis-omega angles
 
-        Parameters
-        ----------
-        coords: [n_frames, n_atoms, 3]
-            Non-filtered atomistic coordinates
-        forces: [n_frames, n_atoms, 3]
-            Non-filtered atomistic forces
-        topology: 
-            mdtraj topology to load the coordinates with
-        verbose:
-            If True, will print a warning containing the number of discarded frames for this sample
+    Parameters
+    ----------
+    coords: [n_frames, n_atoms, 3]
+        Non-filtered atomistic coordinates
+    forces: [n_frames, n_atoms, 3]
+        Non-filtered atomistic forces
+    topology:
+        mdtraj topology to load the coordinates with
+    verbose:
+        If True, will print a warning containing the number of discarded frames for this sample
 
-        Returns
-        -------
-        Tuple of np.ndarray's for filtered coarse grained coordinates and forces
-        """
-        min_omega_atoms = set(["N", "CA", "C"])
-        unique_atom_types = set([atom.name for atom in topology.atoms])
-        if not min_omega_atoms.issubset(unique_atom_types):
-            raise ValueError("Provided pdb file must contain at least N, CA and C atoms for cis-omega filtering")
-        
-        cis_omega_mask = np.zeros(coords.shape[0], dtype=bool)
-        md_traj = md.Trajectory(coords, topology)
+    Returns
+    -------
+    Tuple of np.ndarray's for filtered coarse grained coordinates and forces
+    """
+    min_omega_atoms = set(["N", "CA", "C"])
+    unique_atom_types = set([atom.name for atom in topology.atoms])
+    if not min_omega_atoms.issubset(unique_atom_types):
+        raise ValueError(
+            "Provided pdb file must contain at least N, CA and C atoms for cis-omega filtering"
+        )
 
-        omega_idx, omega_values = md.compute_omega(md_traj)
+    cis_omega_mask = np.zeros(coords.shape[0], dtype=bool)
+    md_traj = md.Trajectory(coords, topology)
 
-        cis_omega_threshold = 1.0 #rad
-        mask = np.all(np.abs(omega_values) > 1, axis=1)
-        if not np.all(mask):
-            warnings.warn(f"Discarding {len(mask) - np.sum(mask)} cis frames")
-        if np.sum(mask) == 0:
-            warnings.warn(f"This amounts to removing all frames for this molecule")
+    omega_idx, omega_values = md.compute_omega(md_traj)
 
-        return  coords[mask], forces[mask]
+    cis_omega_threshold = 1.0  # rad
+    mask = np.all(np.abs(omega_values) > 1, axis=1)
+    if not np.all(mask):
+        warnings.warn(f"Discarding {len(mask) - np.sum(mask)} cis frames")
+    if np.sum(mask) == 0:
+        warnings.warn(f"This amounts to removing all frames for this molecule")
+
+    return coords[mask], forces[mask]
+
 
 def get_terminal_atoms(
     prior_builder: PriorBuilder,

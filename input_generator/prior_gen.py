@@ -85,7 +85,9 @@ class PriorBuilder:
             weights = data.weights
         else:
             weights = None
-        self.histograms.accumulate_statistics(nl_name, values, atom_types, mapping, weights)
+        self.histograms.accumulate_statistics(
+            nl_name, values, atom_types, mapping, weights
+        )
 
 
 class Bonds(PriorBuilder):

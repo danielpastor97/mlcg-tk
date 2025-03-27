@@ -36,7 +36,7 @@ def process_raw_dataset(
     force_stride: int = 100,
     filter_cis: Optional[bool] = False,
     batch_size: Optional[int] = None,
-    mol_num_batches: Optional[int] = 1
+    mol_num_batches: Optional[int] = 1,
 ):
     """
     Applies coarse-grained mapping to coordinates and forces using input sample
@@ -72,14 +72,14 @@ def process_raw_dataset(
     stride : int
         Interval by which to stride loaded data
     force_stride : int
-        stride for inferring the force maps in aggforce 
-    filter_cis : bool 
+        stride for inferring the force maps in aggforce
+    filter_cis : bool
         if True, frames with cis-configurations will be filtered out from the dataset
     batch_size : int
         Optional size in which performing batches of AA mapping to CG, to avoid
         memory overhead in large AA dataset
     mol_num_batches : int
-        If greater than 1, will save each molecule data into the specified number of batches 
+        If greater than 1, will save each molecule data into the specified number of batches
         that will be treated as different samples
     """
     dataset = RawDataset(dataset_name, names, tag, n_batches=mol_num_batches)
@@ -96,7 +96,11 @@ def process_raw_dataset(
         )
 
         aa_coords, aa_forces = sample_loader.load_coords_forces(
-            raw_data_dir, samples.mol_name, stride=stride, batch=samples.batch, n_batches=samples.n_batches
+            raw_data_dir,
+            samples.mol_name,
+            stride=stride,
+            batch=samples.batch,
+            n_batches=samples.n_batches,
         )
 
         if samples.n_batches > 1 and samples.batch > 1:
@@ -106,20 +110,19 @@ def process_raw_dataset(
             mapping = cg_mapping_strategy
 
         cg_coords, cg_forces = samples.process_coords_forces(
-            aa_coords, 
+            aa_coords,
             aa_forces,
             topology=samples.input_traj.top,
-            mapping=mapping, 
+            mapping=mapping,
             force_stride=force_stride,
             batch_size=batch_size,
-            filter_cis=filter_cis
+            filter_cis=filter_cis,
         )
 
         samples.save_cg_output(save_dir, save_coord_force=True, save_cg_maps=True)
-        # the sample object will retain the output so it makes sense to delete them 
+        # the sample object will retain the output so it makes sense to delete them
         del samples.cg_coords
         del samples.cg_forces
-        
 
 
 def build_neighborlists(
@@ -141,7 +144,7 @@ def build_neighborlists(
     force_stride: int = 100,
     filter_cis: bool = False,
     batch_size: Optional[int] = None,
-    mol_num_batches: Optional[int] = 1
+    mol_num_batches: Optional[int] = 1,
 ):
     """
     Generates neighbour lists for all samples in dataset using prior term information
@@ -172,17 +175,17 @@ def build_neighborlists(
         String identifying the specific combination of prior terms
     prior_builders : List[PriorBuilder]
         List of PriorBuilder objects and their corresponding parameters
-    
+
     stride : int
         unused in this function
         present to allow the use of the same .yaml config for process_raw_dataset and build_neighborlists
     force_stride : int
         unused in this function
         present to allow the use of the same .yaml config for process_raw_dataset and build_neighborlists
-    filter_cis : bool 
+    filter_cis : bool
         unused in this function
         present to allow the use of the same .yaml config for process_raw_dataset and build_neighborlists
-    batch_size : bool 
+    batch_size : bool
         unused in this function
         present to allow the use of the same .yaml config for process_raw_dataset and build_neighborlists
     mol_num_batches : int
