@@ -8,6 +8,7 @@ from .raw_data_loader import (
     BBA_loader,
     OPEP_loader,
     DPPC_loader,
+    SimDPPCInput_loader,
 )
 
 

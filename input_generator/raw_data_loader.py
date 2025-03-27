@@ -625,6 +625,30 @@ class SimInput_loader(DatasetLoader):
         )
         top_dataframe = input_traj.topology.to_dataframe()[0]
         return input_traj, top_dataframe
+    
+class SimDPPCInput_loader(DatasetLoader):
+    """
+    Loader for protein structures to be used in CG simulations
+    """
+
+    def get_traj_top(self, name: str, raw_data_dir: str):
+        """
+        For a given name, returns a loaded MDTraj object at the input resolution
+        (generally atomistic) as well as the dataframe associated with its topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        raw_data_dir:
+            Path to pdb structure file
+        """
+        pdb = md.load(f"{raw_data_dir}{name}.gro")
+        input_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.name == 'DPPC']
+        )
+        top_dataframe = input_traj.topology.to_dataframe()[0]
+        return input_traj, top_dataframe
 
 
 class DPPC_loader(DatasetLoader):

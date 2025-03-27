@@ -49,6 +49,20 @@ LIPID_BONDS = {
     ],
 }
 
+LIPID_MASSES = {
+        'NC3':  72,
+        'PO4':  72,
+        'GL1':  54,
+        'GL2':  54,
+        'C1A':  72,
+        'C2A':  72,
+        'C3A':  72,
+        'C4A':  72,
+        'C1B':  72,
+        'C2B':  72,
+        'C3B':  72,
+        'C4B':  72,
+}
 
 def with_attrs(**func_attrs):
     """Set attributes in the decorated function, at definition time.

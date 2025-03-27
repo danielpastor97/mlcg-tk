@@ -8,9 +8,9 @@ from input_generator.raw_dataset import SampleCollection, RawDataset, SimInput
 from input_generator.embedding_maps import (
     CGEmbeddingMap,
 )
-from input_generator.raw_data_loader import DatasetLoader, SimInput_loader
+from input_generator.raw_data_loader import DatasetLoader, SimInput_loader, DPPC_loader
 from input_generator.prior_gen import Bonds, PriorBuilder
-from input_generator.utils import get_output_tag
+from input_generator.utils import get_output_tag, LIPID_MASSES
 from tqdm import tqdm
 
 from time import ctime
@@ -35,7 +35,10 @@ def process_sim_input(
     cg_atoms: List[str],
     embedding_map: CGEmbeddingMap,
     embedding_func: Callable,
+    martini_map: bool,
+    martini_ref: str,
     skip_residues: List[str],
+    class_loader: DatasetLoader,
     copies: int,
     prior_tag: str,
     prior_builders: List[PriorBuilder],
@@ -80,23 +83,34 @@ def process_sim_input(
 
     dataset = SimInput(dataset_name, tag, pdb_fns)
     for samples in tqdm(dataset, f"Processing CG data for {dataset_name} dataset..."):
-        sample_loader = SimInput_loader()
+        sample_loader = class_loader
         samples.input_traj, samples.top_dataframe = sample_loader.get_traj_top(
             name=samples.name, raw_data_dir=raw_data_dir
         )
+        if martini_map:
+            sample_loader_ref = DPPC_loader()
+
+            atomistic_ref_traj, atomistic_ref_top = sample_loader_ref.get_traj_top(
+                samples.name, martini_ref
+            ) 
+        else:
+            atomistic_ref_traj = None
+            atomistic_ref_top = None
 
         samples.apply_cg_mapping(
             cg_atoms=cg_atoms,
             embedding_function=embedding_func,
             embedding_dict=embedding_map,
             skip_residues=skip_residues,
+            atomistic_ref_traj=atomistic_ref_traj,
+            atomistic_ref_top=atomistic_ref_top,
         )
 
         cg_trajs = samples.input_traj.atom_slice(samples.cg_atom_indices)
         cg_masses = (
-            np.array([int(atom.element.mass) for atom in cg_trajs[0].topology.atoms])
-            / mass_scale
-        )
+                    np.array([int(LIPID_MASSES[atom.name]) for atom in cg_trajs.topology.atoms])
+                    / mass_scale
+                )
         prior_nls = samples.get_prior_nls(
             prior_builders=prior_builders,
             save_nls=False,
