@@ -28,6 +28,8 @@ from .utils import (
 )
 from .prior_gen import PriorBuilder
 
+def get_dimensions(xyz_dims):
+    return [[xyz_dims[0],   0.0000,   0.0000], [  0.0000, xyz_dims[1],   0.0000], [  0.0000,   0.0000, xyz_dims[2]]]
 
 def get_strides(n_structure: int, batch_size: int):
     """
@@ -65,6 +67,8 @@ class CGDataBatch:
         Coarse grained forces
     cg_embeds:
         Atom embeddings
+    cell:
+        Simulation cell dimensions (if PBC is used)
     cg_prior_nls:
         Dictionary of prior neighbour list
     """
@@ -74,6 +78,7 @@ class CGDataBatch:
         cg_coords: np.ndarray,
         cg_forces: np.ndarray,
         cg_embeds: np.ndarray,
+        cell: np.ndarray,
         cg_prior_nls: Dict,
         batch_size: int,
         stride: int,
@@ -92,6 +97,7 @@ class CGDataBatch:
         else:
             self.cg_forces = torch.from_numpy(cg_forces[::stride])
         self.cg_embeds = torch.from_numpy(cg_embeds)
+        self.cell = cell[::stride]
         self.cg_prior_nls = cg_prior_nls
         if isinstance(weights, np.ndarray):
             self.weights = torch.from_numpy(weights[::stride])
@@ -124,6 +130,8 @@ class CGDataBatch:
                 pos=self.cg_coords[ii],
                 atom_types=self.cg_embeds,
                 masses=None,
+                cell=torch.from_numpy(np.array(get_dimensions(self.cell[ii]))),
+                pbc=torch.from_numpy(np.ones((1, 3), dtype=bool)),
                 neighborlist=self.cg_prior_nls,
             )
             if self.concat_forces:
@@ -653,13 +661,14 @@ class SampleCollection:
         else:
             cg_forces = None
         cg_embeds = np.load(f"{mol_save_templ}cg_embeds.npy")
+        cell = np.load(f"{save_templ}cg_dims.npy")
         cg_pdb = md.load(f"{mol_save_templ}cg_structure.pdb")
         # load NLs
         ofile =  f"{mol_save_templ}prior_nls{get_output_tag(prior_tag, placement='after')}.pkl"
 
         with open(ofile, "rb") as f:
             cg_prior_nls = pickle.load(f)
-        return cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls
+        return cg_coords, cg_forces, cg_embeds, cell, cg_pdb, cg_prior_nls
 
     def load_cg_output_into_batches(
         self,
@@ -687,7 +696,7 @@ class SampleCollection:
         -------
         Loaded CG data split into list of batches
         """
-        cg_coords, cg_forces, cg_embeds, cg_pdb, cg_prior_nls = self.load_cg_output(
+        cg_coords, cg_forces, cg_embeds, cell, cg_pdb, cg_prior_nls = self.load_cg_output(
             save_dir, prior_tag
         )
         #load weights if given
@@ -698,7 +707,7 @@ class SampleCollection:
         else:
             weights = None
         batch_list = CGDataBatch(
-            cg_coords, cg_forces, cg_embeds, cg_prior_nls, batch_size, stride, weights
+            cg_coords, cg_forces, cg_embeds, cell, cg_prior_nls, batch_size, stride, weights
         )
         return batch_list
     
@@ -721,11 +730,13 @@ class SampleCollection:
         save_templ = os.path.join(training_data_dir, get_output_tag([self.tag, self.name], placement="before"))
         cg_coords = np.load(f"{save_templ}cg_coords.npy")[::stride]
         cg_embeds = np.load(f"{mol_save_templ}cg_embeds.npy")
-
+        cg_dims = np.load(f"{save_templ}cg_dims.npy")[::stride]
+        pbc = torch.ones((cg_coords.shape[0], 3), dtype=torch.bool)
+        cell = torch.Tensor([get_dimensions(cg_dims[frame]) for frame in range(cg_coords.shape[0])])
         save_templ_forces = os.path.join(training_data_dir, get_output_tag([self.tag, self.name, force_tag], placement="before"))
         cg_forces = np.load(f"{save_templ_forces}delta_forces.npy")[::stride]
         
-        return cg_coords, cg_forces, cg_embeds
+        return cg_coords, cg_forces, cg_embeds, pbc, cell
     
     def load_all_batches_training_inputs(
         self, 

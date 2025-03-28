@@ -25,6 +25,8 @@ from mlcg.data import AtomicData
 import torch
 from copy import deepcopy
 
+def get_dimensions(xyz_dims):
+    return [[xyz_dims[0],   0.0000,   0.0000], [  0.0000, xyz_dims[1],   0.0000], [  0.0000,   0.0000, xyz_dims[2]]]
 
 def process_sim_input(
     dataset_name: str,
@@ -111,6 +113,9 @@ def process_sim_input(
                     np.array([int(LIPID_MASSES[atom.name]) for atom in cg_trajs.topology.atoms])
                     / mass_scale
                 )
+        
+        cg_dims = cg_trajs.unitcell_lengths * 10
+
         prior_nls = samples.get_prior_nls(
             prior_builders=prior_builders,
             save_nls=False,
@@ -132,9 +137,11 @@ def process_sim_input(
         cg_coord_list, cg_type_list, cg_mass_list, cg_nls_list
     ):
         data = AtomicData.from_points(
-            pos=torch.tensor(coords[0]),
+            pos=torch.tensor(coords[0], dtype=torch.float64),
             atom_types=torch.tensor(types),
             masses=torch.tensor(masses),
+            cell=torch.from_numpy(np.array(get_dimensions(cg_dims[0]), dtype=np.float64)),
+            pbc=torch.from_numpy(np.ones((1, 3), dtype=bool)),
         )
         data.neighbor_list = deepcopy(nls)
         data_list.append(data)

@@ -12,8 +12,6 @@ from mlcg.nn.prior import (
     GeneralAngles,
 )
 
-from .prior_fit.raw_angle import HarmonicRawAngle
-
 from mlcg.nn.gradients import GradientsOut
 
 from mlcg.data import AtomicData
@@ -69,7 +67,7 @@ class PriorBuilder:
         """
         return self.nl_builder(topology=topology)
 
-    def accumulate_statistics(self, nl_name: str, data: AtomicData) -> None:
+    def accumulate_statistics(self, nl_name: str, data: AtomicData, pbc: bool = False) -> None:
         """
         Computes atom-type specific features and calculates statistics from a collated
         AtomicData stucture
@@ -83,7 +81,10 @@ class PriorBuilder:
         """
         atom_types = data.atom_types
         mapping = data.neighbor_list[nl_name]["index_mapping"]
-        values = self.prior_cls.compute_features(data.pos, mapping)
+        if pbc:
+            values = self.prior_cls.compute_features(data.pos, mapping, pbc=data.pbc, cell=data.cell)
+        else:
+            values = self.prior_cls.compute_features(data.pos, mapping)
         if hasattr(data, "weights"):
             weights = data.weights
         else:
@@ -222,7 +223,7 @@ class Angles(PriorBuilder):
             ),
             nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
-            prior_cls=HarmonicRawAngle,
+            prior_cls=GeneralAngles,
         )
         self.name = name
         self.type = "angles"

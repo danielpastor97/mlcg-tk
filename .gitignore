@@ -168,3 +168,4 @@ lip_data/*
 *pt
 sim/*
 mlcg-*
+sim_priors/*

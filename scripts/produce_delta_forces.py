@@ -70,7 +70,7 @@ def produce_delta_forces(
         if not samples.has_saved_cg_output(save_dir, prior_tag):
             warnings.warn(f"Sample {samples.name} has no saved CG output - This entry will be skipped")
             continue
-        coords, forces, embeds, pdb, prior_nls = samples.load_cg_output(
+        coords, forces, embeds, cell, pdb, prior_nls = samples.load_cg_output(
             save_dir=save_dir, prior_tag=prior_tag
         )
 
@@ -86,6 +86,8 @@ def produce_delta_forces(
                     data = AtomicData.from_points(
                         pos=torch.tensor(coords[i + j]),
                         forces=torch.tensor(forces[i + j]),
+                        cell=torch.from_numpy(np.array(get_dimensions(cell[i+j]))),
+                        pbc=torch.from_numpy(np.ones((1, 3), dtype=bool)),
                         atom_types=torch.tensor(embeds),
                         masses=None,
                         neighborlist=prior_nls,

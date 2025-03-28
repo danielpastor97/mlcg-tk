@@ -105,7 +105,7 @@ def package_training_data(
                             mol_num_batches=mol_num_batches
                         )
                     else:
-                        cg_coords, cg_delta_forces, cg_embeds = samples.load_training_inputs(
+                        cg_coords, cg_delta_forces, cg_embeds, pbc, cell = samples.load_training_inputs(
                             training_data_dir=training_data_dir,
                             force_tag=force_tag,
                         )
@@ -117,11 +117,18 @@ def package_training_data(
                 hdf_group = metaset.create_group(name)
 
                 hdf_group.create_dataset(
-                    "cg_coords", data=cg_coords.astype(np.float32)
+                    "cg_coords", data=cg_coords.astype(np.float64)
                 )
                 hdf_group.create_dataset(
-                    "cg_delta_forces", data=cg_delta_forces.astype(np.float32)
+                    "cg_delta_forces", data=cg_delta_forces.astype(np.float64)
                 )
+
+                print('pbc.shape', pbc.shape)
+                print('cell.shape', cell.shape)
+                print('cg_coords.shape', cg_coords.shape)
+                print('cg_delta_forces.shape', cg_delta_forces.shape)
+                hdf_group.create_dataset("pbc", data=pbc)
+                hdf_group.create_dataset("cell", data=cell.double())
                 hdf_group.attrs["cg_embeds"] = cg_embeds
                 hdf_group.attrs["N_frames"] = cg_coords.shape[0]
     

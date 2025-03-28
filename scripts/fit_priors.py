@@ -43,7 +43,8 @@ def compute_statistics(
     save_figs: bool = True,
     save_sample_statistics: bool = False,
     weights_template_fn: Optional[str] = None,
-    mol_num_batches: Optional[int] = 1
+    mol_num_batches: Optional[int] = 1,
+    pbc: bool = False
 ):
     """
     Computes structural features and accumulates statistics on dataset samples
@@ -130,7 +131,7 @@ def compute_statistics(
                 batch = batch.to(device)
                 for nl_name in nl_names:
                     prior_builder = sample_nl_name2prior_builder[nl_name]
-                    prior_builder.accumulate_statistics(nl_name, batch)
+                    prior_builder.accumulate_statistics(nl_name, batch, pbc=pbc)
             
             with open(sample_fnout, "wb") as f:
                 pck.dump(sample_prior_builders, f)
@@ -141,7 +142,7 @@ def compute_statistics(
             batch = batch.to(device)
             for nl_name in nl_names:
                 prior_builder = nl_name2prior_builder[nl_name]
-                prior_builder.accumulate_statistics(nl_name, batch)
+                prior_builder.accumulate_statistics(nl_name, batch, pbc=pbc)
 
     key_map = {v: k for k, v in embedding_map.items()}
     if save_figs:
