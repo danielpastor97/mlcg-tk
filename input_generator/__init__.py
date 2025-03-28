@@ -2,12 +2,18 @@ from .raw_dataset import RawDataset, SampleCollection
 from .raw_data_loader import (
     DatasetLoader,
     CATH_loader,
+    CATH_ext_loader,
     DIMER_loader,
+    DIMER_ext_loader,
     Villin_loader,
     Trpcage_loader,
     Cln_loader,
     BBA_loader,
+    ProteinG_loader,
+    A3D_loader,
     OPEP_loader,
+    NTL9_loader,
+    HDF5_loader,
 )
 
 
