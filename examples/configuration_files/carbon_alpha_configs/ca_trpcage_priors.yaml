@@ -14,7 +14,8 @@ prior_builders:
       name: angles
       separate_termini: false
       nl_builder: input_generator.StandardAngles
-      prior_fit_fn: input_generator.fit_harmonic_from_potential_estimates
+      prior_fit_fn: input_generator.prior_fit.fit_polynomial_from_potential_estimates
+      prior_cls: mlcg.nn.prior.QuarticAngles
       n_bins: 100
       bmin: -1.1
       bmax: 1.1

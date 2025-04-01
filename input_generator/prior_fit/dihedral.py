@@ -3,7 +3,7 @@ from typing import Dict, Optional
 from scipy.integrate import trapezoid
 from scipy.optimize import curve_fit
 import numpy as np
-
+from .utils import neg_log_likelihood
 
 def dihedral(
     theta: torch.Tensor,
@@ -54,14 +54,6 @@ def dihedral_wrapper_fit_func(theta: torch.Tensor, *args) -> torch.Tensor:
     k2s = torch.tensor(k2s).view(-1, num_ks)
     return dihedral(theta, v_0, k1s, k2s)
 
-
-def neg_log_likelihood(y, yhat):
-    """
-    Convert dG to probability and use KL divergence to get difference between
-    predicted and actual
-    """
-    L = torch.sum(torch.exp(-y) * torch.log(torch.exp(-yhat)))
-    return -L
 
 
 def _init_parameters(n_degs):
