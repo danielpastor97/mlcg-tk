@@ -201,6 +201,9 @@ class Angles(PriorBuilder):
         Upper bound of bin edges
     prior_fit_fn:
         Function to be used in fitting potential from statistics
+    prior_cls:
+        Prior class to be used. It must be able to be initialized from the output
+        of the `prior_fit_fn`
     """
 
     def __init__(
@@ -212,6 +215,7 @@ class Angles(PriorBuilder):
         bmin: float,
         bmax: float,
         prior_fit_fn: Callable,
+        prior_cls=GeneralAngles,
     ) -> None:
         super().__init__(
             histograms=HistogramsNL(
@@ -221,7 +225,7 @@ class Angles(PriorBuilder):
             ),
             nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
-            prior_cls=GeneralAngles,
+            prior_cls=prior_cls,
         )
         self.name = name
         self.type = "angles"
