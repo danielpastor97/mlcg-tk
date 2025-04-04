@@ -7,6 +7,7 @@ from mlcg.nn.prior import (
     HarmonicAngles,
     Dihedral,
     Repulsion,
+    LennardJonesShifted,
     _Prior,
     GeneralBonds,
     GeneralAngles,
@@ -334,7 +335,7 @@ class NonBonded(PriorBuilder):
             ),
             nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
-            prior_cls=Repulsion,
+            prior_cls=LennardJonesShifted,
         )
         self.name = name
         self.type = "non_bonded"
