@@ -10,6 +10,7 @@ from .raw_data_loader import (
     DPPC_loader,
     POPC_loader,
     SimDPPCInput_loader,
+    SimPOPCInput_loader,
 )
 
 

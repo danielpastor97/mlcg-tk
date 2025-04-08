@@ -8,7 +8,7 @@ from input_generator.raw_dataset import SampleCollection, RawDataset, SimInput
 from input_generator.embedding_maps import (
     CGEmbeddingMap,
 )
-from input_generator.raw_data_loader import DatasetLoader, SimInput_loader, DPPC_loader
+from input_generator.raw_data_loader import DatasetLoader, SimInput_loader, DPPC_loader, POPC_loader
 from input_generator.prior_gen import Bonds, PriorBuilder
 from input_generator.utils import get_output_tag, LIPID_MASSES
 from tqdm import tqdm
@@ -90,7 +90,7 @@ def process_sim_input(
             name=samples.name, raw_data_dir=raw_data_dir
         )
         if martini_map:
-            sample_loader_ref = DPPC_loader()
+            sample_loader_ref = POPC_loader()
 
             atomistic_ref_traj, atomistic_ref_top = sample_loader_ref.get_traj_top(
                 samples.name, martini_ref
