@@ -185,7 +185,7 @@ def embedding_lipids_martini_popc(atom_df):
     """
     name = atom_df["name"]
     if name in ["NC3", "PO4", "GL1", "GL2", "C1A", "D2A", "C3A", "C4A", "C1B", "C2B", "C3B", "C4B"]:
-        atom_type = embedding_map_lipids_martini[name]
+        atom_type = embedding_map_lipids_martini_popc[name]
     else:
         print(f"Unknown atom name given: {name}")
         atom_type = "NA"
