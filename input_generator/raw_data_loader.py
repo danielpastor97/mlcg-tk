@@ -773,7 +773,7 @@ class POPC_loader(DatasetLoader):
         dims_fn = os.path.join(base_dir, f"{name}_cg_dims.npy")
 
         coord = np.load(coords_fn) # I don't have to convert from nm to angstrom because I am using MDAnalysis to save the coordinates and it does it already, otherwise I would need to convert it by multiplying by 10.
-        force = np.load(forces_fn) / 4.184 # convert from kJ/mol/A (en MDAnalysis) to kcal/mol/ang
+        force = np.load(forces_fn) #/ 4.184 # convert from kJ/mol/A (en MDAnalysis) to kcal/mol/ang
         dims = np.load(dims_fn)
 
         assert coord.shape == force.shape
