@@ -335,7 +335,7 @@ class NonBonded(PriorBuilder):
             ),
             nl_builder=nl_builder,
             prior_fit_fn=prior_fit_fn,
-            prior_cls=LennardJonesShifted,
+            prior_cls=Repulsion,
         )
         self.name = name
         self.type = "non_bonded"

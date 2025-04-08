@@ -43,6 +43,21 @@ embedding_map_lipids_martini = {
     "C4B":  12,
 }
 
+embedding_map_lipids_martini_popc = {
+    "NC3": 1,
+    "PO4":  2,
+    "GL1":  3,
+    "GL2":  4,
+    "C1A":  5,
+    "D2A":  6,
+    "C3A":  7,
+    "C4A":  8,
+    "C1B":  9,
+    "C2B":  10,
+    "C3B":  11,
+    "C4B":  12,
+}
+
 
 class CGEmbeddingMap(dict):
     """
@@ -86,6 +101,14 @@ class CGEmbeddingMapLipidsMartini(CGEmbeddingMap):
     def __init__(self):
         super().__init__(embedding_map_lipids_martini)
 
+class CGEmbeddingMapLipidsMartiniPopc(CGEmbeddingMap):
+    """
+    Simple lipids embedding map defined by:
+        - P : phosphate group
+    """
+
+    def __init__(self):
+        super().__init__(embedding_map_lipids_martini_popc)
 
 all_residues = [
     "ALA",
@@ -150,6 +173,18 @@ def embedding_lipids_martini(atom_df):
     """
     name = atom_df["name"]
     if name in ["NC3", "PO4", "GL1", "GL2", "C1A", "C2A", "C3A", "C4A", "C1B", "C2B", "C3B", "C4B"]:
+        atom_type = embedding_map_lipids_martini[name]
+    else:
+        print(f"Unknown atom name given: {name}")
+        atom_type = "NA"
+    return atom_type
+
+def embedding_lipids_martini_popc(atom_df):
+    """
+    Helper function for mapping high-resolution topology to 5-bead embedding map.
+    """
+    name = atom_df["name"]
+    if name in ["NC3", "PO4", "GL1", "GL2", "C1A", "D2A", "C3A", "C4A", "C1B", "C2B", "C3B", "C4B"]:
         atom_type = embedding_map_lipids_martini[name]
     else:
         print(f"Unknown atom name given: {name}")
