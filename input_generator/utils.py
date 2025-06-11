@@ -16,6 +16,90 @@ from aggforce import (
 
 from .prior_gen import PriorBuilder
 
+LIPID_MAPPINGS = {
+        'DPPC': {
+                'NC3' : ['N', 'C13', 'H13A', 'H13B', 'H13C', 'C14', 'H14A', 'H14B', 'H14C', 'C15', 'H15A', 'H15B', 'H15C', 'C12', 'H12A', 'H12B', 'C11', 'H11A', 'H11B'],      
+                'PO4'  : ['P', 'O13', 'O14', 'O11', 'O12'],
+                'GL1'  : ['C2', 'HS', 'O21', 'C21', 'O22', 'C1', 'HA', 'HB' ],
+                'GL2'  : ['C3', 'HX', 'HY', 'O31', 'O32', 'C31'],
+                'C1A'  : ['C22', 'H2R', 'H2S', 'C23', 'H3R', 'H3S', 'C24', 'H4R', 'H4S', 'C25', 'H5R', 'H5S'],
+                'C2A'  : ['C26', 'H6R', 'H6S', 'C27', 'H7R', 'H7S', 'C28', 'H8R', 'H8S', 'C29', 'H9R', 'H9S'],
+                'C3A'  : ['C210', 'H10R', 'H10S', 'C211', 'H11R', 'H11S', 'C212', 'H12R', 'H12S', 'C213', 'H13R', 'H13S'],
+                'C4A'  : ['C214', 'H14R', 'H14S', 'C215', 'H15R', 'H15S', 'C216', 'H16R', 'H16S', 'H16T'],
+                'C1B'  : ['C32', 'H2Y', 'H2X', 'C33', 'H3Y', 'H3X', 'C34', 'H4Y', 'H4X', 'C35', 'H5Y', 'H5X'],
+                'C2B'  : ['C36', 'H6Y', 'H6X', 'C37', 'H7Y', 'H7X', 'C38', 'H8Y', 'H8X', 'C39', 'H9Y', 'H9X'],
+                'C3B'  : ['C310', 'H10Y', 'H10X', 'C311', 'H11Y', 'H11X', 'C312', 'H12Y', 'H12X', 'C313', 'H13Y', 'H13X'],
+                'C4B'  : ['C314', 'H14Y', 'H14X', 'C315', 'H15Y', 'H15X', 'C316', 'H16Y', 'H16X', 'H16Z'],
+        },
+        'POPC': {
+                'NC3'  : ['N', 'C13', 'H13A', 'H13B', 'H13C', 'C14', 'H14A', 'H14B', 'H14C', 'C15', 'H15A', 'H15B', 'H15C', 'C12', 'H12A', 'H12B', 'C11', 'H11A', 'H11B'],  
+                'PO4'  : ['P', 'O13', 'O14', 'O11', 'O12'],
+                'GL1'  : ['C2', 'HS', 'O21', 'C21', 'O22', 'C1', 'HA', 'HB' ],
+                'GL2'  : ['C3', 'HX', 'HY', 'O31', 'O32', 'C31'],
+                'C1A'  : ['C22', 'H2R', 'H2S', 'C23', 'H3R', 'H3S', 'C24', 'H4R', 'H4S', 
+                'C25', 'H5R', 'H5S'],
+                'D2A'  : ['C26', 'H6R', 'H6S', 'C27', 'H7R', 'H7S', 'C28', 'H8R', 'H8S', 
+                'C29', 'H91', 'H101'],
+                'C3A'  : ['C210', 'C211', 'H11R', 'H11S', 'C212', 'H12R', 'H12S', 'C213',
+                'H13R', 'H13S', 'C214', 'H14R', 'H14S'],
+                'C4A'  : ['C215', 'H15R', 'H15S', 'C216', 'H16R', 'H16S', 'C217', 'H17R',
+                'H17S', 'C218', 'H18R', 'H18S', 'H18T'],
+                'C1B'  : ['C32', 'H2Y', 'H2X', 'C33', 'H3Y', 'H3X', 'C34', 'H4Y', 'H4X', 
+                'C35', 'H5Y', 'H5X'],
+                'C2B'  : ['C36', 'H6Y', 'H6X', 'C37', 'H7Y', 'H7X', 'C38', 'H8Y', 'H8X', 
+                'C39', 'H9Y', 'H9X'],
+                'C3B'  : ['C310', 'H10Y', 'H10X', 'C311', 'H11Y', 'H11X', 'C312', 'H12Y',
+                'H12X', 'C313', 'H13Y', 'H13X'],
+                'C4B'  : ['C314', 'H14Y', 'H14X', 'C315', 'H15Y', 'H15X', 'C316', 'H16Y',
+                'H16X', 'H16Z']
+        }
+}
+
+LIPID_BONDS = {
+    'DPPC': [
+        (0, 1), # N-P
+        (1, 2), # P-C2
+        (1, 3), # P-C3
+        (2, 3), # C2-C3
+        (2, 4), # C2-C24
+        (4, 5), # C24-C28
+        (5, 6), # C28-C212
+        (6, 7), # C212-C216
+        (3, 8), # C3-C34
+        (8, 9), # C34-C38
+        (9, 10), # C38-C312
+        (10, 11), # C312-C316
+    ],
+    'POPC': [
+        (0, 1), # N-P
+        (1, 2), # P-C2
+        (1, 3), # P-C3
+        (2, 3), # C2-C3
+        (2, 4), # C2-C24
+        (4, 5), # C24-C28
+        (5, 6), # C28-C212
+        (6, 7), # C212-C216
+        (3, 8), # C3-C34
+        (8, 9), # C34-C38
+        (9, 10), # C38-C312
+        (10, 11), # C312-C316
+    ],
+}
+
+LIPID_MASSES = {
+        'NC3':  72,
+        'PO4':  72,
+        'GL1':  54,
+        'GL2':  54,
+        'C1A':  72,
+        'D2A':  54,
+        'C3A':  72,
+        'C4A':  72,
+        'C1B':  72,
+        'C2B':  72,
+        'C3B':  72,
+        'C4B':  72,
+}
 
 def with_attrs(**func_attrs):
     """Set attributes in the decorated function, at definition time.
@@ -235,8 +319,8 @@ def slice_coord_forces(
     """
     config_map = LinearMap(cg_map)
     config_map_matrix = config_map.standard_matrix
-    # taking only first 100 frames gives same results in ~1/15th of time
-    constraints = guess_pairwise_constraints(coords[:100], threshold=5e-3)
+    # taking only first 100 frames every 2 frames gives same results in ~1/15th of time
+    constraints = guess_pairwise_constraints(coords[:100:2], threshold=5e-3)
     if isinstance(mapping, str):
         if mapping == "slice_aggregate":
             method = constraint_aware_uni_map
@@ -575,3 +659,36 @@ def get_dihedral_groups(
             atom_groups[label].append(np.concatenate(dihedral))
 
     return atom_groups
+
+def normalize_to_one(numbers):
+    total = sum(numbers)
+    if total == 0:
+        raise ValueError("Sum of the input list is zero, cannot normalize.")
+    
+    # Normalize the numbers
+    normalized = [x / total for x in numbers]
+    
+    # Adjust the last element to account for floating-point inaccuracies
+    correction = 1 - sum(normalized)
+    normalized[-1] += correction
+    
+    return normalized
+
+def add_bonds_to_cg_topology(cg_top: md.Topology):
+    """
+    Parameters
+    ----------
+    cg_top:
+        MDTraj topology object of CG topology.
+
+    Returns
+    -------
+    MDTraj topology object with bonds added.
+    """
+    # add bonds to CG topology
+    for residue in cg_top.residues:
+        res_atoms = [a for a in residue.atoms]
+        for bond in LIPID_BONDS[residue.name]:
+            cg_top.add_bond(res_atoms[bond[0]], res_atoms[bond[1]])
+
+    return cg_top   

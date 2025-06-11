@@ -12,8 +12,10 @@ from .raw_data_loader import (
     ProteinG_loader,
     A3D_loader,
     OPEP_loader,
-    NTL9_loader,
-    HDF5_loader,
+    DPPC_loader,
+    POPC_loader,
+    SimDPPCInput_loader,
+    SimPOPCInput_loader,
 )
 
 
@@ -21,8 +23,12 @@ from .embedding_maps import (
     CGEmbeddingMap,
     CGEmbeddingMapFiveBead,
     CGEmbeddingMapCA,
+    CGEmbeddingMapLipidsMartini,
+    CGEmbeddingMapLipidsMartiniPopc,
     embedding_fivebead,
     embedding_ca,
+    embedding_lipids_martini,
+    embedding_lipids_martini_popc,
 )
 
 

@@ -1166,3 +1166,157 @@ class SimInput_loader(DatasetLoader):
         )
         top_dataframe = input_traj.topology.to_dataframe()[0]
         return input_traj, top_dataframe
+    
+class SimDPPCInput_loader(DatasetLoader):
+    """
+    Loader for protein structures to be used in CG simulations
+    """
+
+    def get_traj_top(self, name: str, raw_data_dir: str):
+        """
+        For a given name, returns a loaded MDTraj object at the input resolution
+        (generally atomistic) as well as the dataframe associated with its topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        raw_data_dir:
+            Path to pdb structure file
+        """
+        pdb = md.load(f"{raw_data_dir}{name}.gro")
+        input_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.name == 'DPPC']
+        )
+        top_dataframe = input_traj.topology.to_dataframe()[0]
+        return input_traj, top_dataframe
+
+class SimPOPCInput_loader(DatasetLoader):
+    """
+    Loader for protein structures to be used in CG simulations
+    """
+
+    def get_traj_top(self, name: str, raw_data_dir: str):
+        """
+        For a given name, returns a loaded MDTraj object at the input resolution
+        (generally atomistic) as well as the dataframe associated with its topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        raw_data_dir:
+            Path to pdb structure file
+        """
+        pdb = md.load(f"{raw_data_dir}{name}.gro")
+        input_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.name == 'POPC']
+        )
+        top_dataframe = input_traj.topology.to_dataframe()[0]
+        return input_traj, top_dataframe
+
+class DPPC_loader(DatasetLoader):
+    """
+    Loader object for DPPC simulation dataset
+    """
+
+    def get_traj_top(self, name: str, pdb_fn: str):
+        """
+        For a given name, returns a loaded MDTraj object at the input resolution (generally atomistic) 
+        as well as the dataframe associated with tis topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        pdb_fn:
+            Path to pdb structure
+        """
+        pdb = md.load(pdb_fn)
+        aa_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.name == 'DPPC']
+        )
+        top_dataframe = aa_traj.topology.to_dataframe()[0]
+        return aa_traj, top_dataframe
+    
+    def load_coords_forces(
+        self, base_dir: str, name: str, stride: int = 1, batch: Optional[int] = None, n_batches: Optional[int] = 1
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        For a given name, returns np.ndarray's of its coordinates and forces at
+        the input resolution (generally atomistic)
+
+        Parameters
+        ----------
+        base_dir:
+            Path to coordinate and force files
+        name:
+            Name of input sample
+        """
+
+        coords_fn = os.path.join(base_dir, f"dppc_coords_{name}.npy")
+
+        forces_fn = os.path.join(base_dir, f"dppc_forces_{name}.npy")
+
+        dims_fn = os.path.join(base_dir, f"{name}_cg_dims.npy")
+
+        coord = np.load(coords_fn) # I don't have to convert from nm to angstrom because I am using MDAnalysis to save the coordinates and it does it already, otherwise I would need to convert it by multiplying by 10.
+        force = np.load(forces_fn) / 4.184 # convert from kJ/mol/A (en MDAnalysis) to kcal/mol/ang
+        dims = np.load(dims_fn)
+
+        assert coord.shape == force.shape
+
+        return coord, force, dims
+
+class POPC_loader(DatasetLoader):
+    """
+    Loader object for POPC simulation dataset
+    """
+
+    def get_traj_top(self, name: str, pdb_fn: str):
+        """
+        For a given name, returns a loaded MDTraj object at the input resolution (generally atomistic) 
+        as well as the dataframe associated with tis topology.
+
+        Parameters
+        ----------
+        name:
+            Name of input sample
+        pdb_fn:
+            Path to pdb structure
+        """
+        pdb = md.load(pdb_fn)
+        aa_traj = pdb.atom_slice(
+            [a.index for a in pdb.topology.atoms if a.residue.name == 'POPC']
+        )
+        top_dataframe = aa_traj.topology.to_dataframe()[0]
+        return aa_traj, top_dataframe
+    
+    def load_coords_forces(
+        self, base_dir: str, name: str, stride: int = 1, batch: Optional[int] = None, n_batches: Optional[int] = 1
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        For a given name, returns np.ndarray's of its coordinates and forces at
+        the input resolution (generally atomistic)
+
+        Parameters
+        ----------
+        base_dir:
+            Path to coordinate and force files
+        name:
+            Name of input sample
+        """
+
+        coords_fn = os.path.join(base_dir, f"coords_{name}.npy")
+
+        forces_fn = os.path.join(base_dir, f"forces_{name}.npy")
+
+        dims_fn = os.path.join(base_dir, f"{name}_cg_dims.npy")
+
+        coord = np.load(coords_fn) # I don't have to convert from nm to angstrom because I am using MDAnalysis to save the coordinates and it does it already, otherwise I would need to convert it by multiplying by 10.
+        force = np.load(forces_fn) #/ 4.184 # convert from kJ/mol/A (en MDAnalysis) to kcal/mol/ang
+        dims = np.load(dims_fn)
+
+        assert coord.shape == force.shape
+
+        return coord, force, dims

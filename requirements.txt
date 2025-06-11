@@ -3,7 +3,6 @@ h5py
 jsonargparse
 matplotlib
 mdtraj
-mlcg @ git+https://github.com/ClementiGroup/mlcg.git@0.0.1 -e
 natsort
 networkx
 numpy 

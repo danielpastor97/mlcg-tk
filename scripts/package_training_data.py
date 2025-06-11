@@ -96,12 +96,24 @@ def package_training_data(
 
         with h5py.File(fnout_h5, "w") as f:
             metaset = f.create_group(dataset_name)
-            for samples in tqdm(dataset, f"Packaging {dataset_name} dataset..."):
-                if not samples.has_delta_forces_output(
-                    training_data_dir=training_data_dir,
-                    force_tag=force_tag,
-                    mol_num_batches=mol_num_batches,
-                ):
+            for samples in tqdm(
+                dataset, f"Packaging {dataset_name} dataset..."
+            ):
+                try:
+                    if mol_num_batches > 1 and not keep_batches:
+                        cg_coords, cg_delta_forces, cg_embeds = samples.load_all_batches_training_inputs(
+                            training_data_dir=training_data_dir,
+                            force_tag=force_tag,
+                            mol_num_batches=mol_num_batches
+                        )
+                    else:
+                        cg_coords, cg_delta_forces, cg_embeds, pbc, cell = samples.load_training_inputs(
+                            training_data_dir=training_data_dir,
+                            force_tag=force_tag,
+                        )
+                except FileNotFoundError:
+                    print("Skipping molecule : ", samples.name)
+
                     continue
                 else:
                     non_empty_names.append(samples.mol_name)
@@ -129,10 +141,20 @@ def package_training_data(
                 name = f"{samples.tag}{samples.name}"
                 hdf_group = metaset.create_group(name)
 
-                hdf_group.create_dataset("cg_coords", data=cg_coords.astype(np.float32))
                 hdf_group.create_dataset(
-                    "cg_delta_forces", data=cg_delta_forces.astype(np.float32)
+                    "cg_coords", data=cg_coords.astype(np.float64)
                 )
+
+                hdf_group.create_dataset(
+                    "cg_delta_forces", data=cg_delta_forces.astype(np.float64)
+                )
+
+                print('pbc.shape', pbc.shape)
+                print('cell.shape', cell.shape)
+                print('cg_coords.shape', cg_coords.shape)
+                print('cg_delta_forces.shape', cg_delta_forces.shape)
+                hdf_group.create_dataset("pbc", data=pbc)
+                hdf_group.create_dataset("cell", data=cell.double())
                 hdf_group.attrs["cg_embeds"] = cg_embeds
                 hdf_group.attrs["N_frames"] = cg_coords.shape[0]
 

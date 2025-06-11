@@ -70,9 +70,45 @@ def produce_delta_forces(
     ):
         if not samples.has_saved_cg_output(save_dir, prior_tag):
             continue
-        coords, forces, embeds, pdb, prior_nls = samples.load_cg_output(
+        coords, forces, embeds, cell, pdb, prior_nls = samples.load_cg_output(
             save_dir=save_dir, prior_tag=prior_tag
         )
+
+        # prior_nls = { # this is relevant for martini neighbours
+        #     'bonds': {
+        #         'tag': 'bonds',
+        #         'order': 2,
+        #         'index_mapping': torch.tensor([[ 0,  1,  1,  2,  2,  3,  4,  5,  6,  8,  9, 10],
+        #                                  [ 1,  2,  3,  3,  4,  8,  5,  6,  7,  9, 10, 11]]),
+        #         'cell_shifts': None,
+        #         'rcut': None,
+        #         'self_interaction': None,
+        #         'mapping_batch': torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])},
+        #     'angles': {
+        #         'tag': 'angles',
+        #         'order': 3,
+        #         'index_mapping': torch.tensor([[ 0,  1,  3,  2,  2,  4,  5,  3,  8,  9],
+        #                                  [ 1,  2,  2,  3,  4,  5,  6,  8,  9, 10],
+        #                                  [ 2,  4,  4,  8,  5,  6,  7,  9, 10, 11]]),
+        #         'cell_shifts': None,
+        #         'rcut': None,
+        #         'self_interaction': None,
+        #         'mapping_batch': torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])},
+        #     'non_bonded': {
+        #         'tag': 'non_bonded',
+        #         'order': 2,
+        #         'index_mapping': torch.tensor([[ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,
+        #                                     2,  2,  2,  2,  2,  2,  2,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,
+        #                                     4,  4,  5,  5,  5,  5,  5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  9],
+        #                                  [ 2,  3,  4,  5,  6,  7,  8,  9, 10, 11,  4,  5,  6,  7,  8,  9, 10, 11,
+        #                                     5,  6,  7,  8,  9, 10, 11,  4,  5,  6,  7,  9, 10, 11,  6,  7,  8,  9,
+        #                                     10, 11,  7,  8,  9, 10, 11,  8,  9, 10, 11,  8,  9, 10, 11, 10, 11, 11]]),
+        #         'cell_shifts': None,
+        #         'rcut': None,
+        #         'self_interaction': None,
+        #         'mapping_batch': torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        #                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        #                                  0, 0, 0, 0, 0, 0])}}
 
         num_frames = coords.shape[0]
         delta_forces = []
@@ -86,6 +122,8 @@ def produce_delta_forces(
                     data = AtomicData.from_points(
                         pos=torch.tensor(coords[i + j]),
                         forces=torch.tensor(forces[i + j]),
+                        cell=torch.from_numpy(np.array(get_dimensions(cell[i+j]))),
+                        pbc=torch.from_numpy(np.ones((1, 3), dtype=bool)),
                         atom_types=torch.tensor(embeds),
                         masses=None,
                         neighborlist=prior_nls,

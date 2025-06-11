@@ -28,6 +28,8 @@ def process_raw_dataset(
     pdb_template_fn: str,
     save_dir: str,
     cg_atoms: List[str],
+    martini_map: bool,
+    martini_ref: str,
     embedding_map: CGEmbeddingMap,
     embedding_func: Callable,
     skip_residues: List[str],
@@ -88,19 +90,25 @@ def process_raw_dataset(
             samples.mol_name, pdb_template_fn
         )
 
+        if martini_map:
+            atomistic_ref_traj, atomistic_ref_top = sample_loader.get_traj_top(
+                samples.name, martini_ref
+            ) 
+        else:
+            atomistic_ref_traj = None
+            atomistic_ref_top = None
+
         samples.apply_cg_mapping(
             cg_atoms=cg_atoms,
             embedding_function=embedding_func,
             embedding_dict=embedding_map,
             skip_residues=skip_residues,
+            atomistic_ref_traj=atomistic_ref_traj,
+            atomistic_ref_top=atomistic_ref_top,
         )
 
-        aa_coords, aa_forces = sample_loader.load_coords_forces(
-            raw_data_dir,
-            samples.mol_name,
-            stride=stride,
-            batch=samples.batch,
-            n_batches=samples.n_batches,
+        aa_coords, aa_forces, aa_dims = sample_loader.load_coords_forces(
+            raw_data_dir, samples.mol_name, stride=stride, batch=samples.batch, n_batches=samples.n_batches
         )
 
         if samples.n_batches > 1 and samples.batch > 1:
@@ -135,6 +143,8 @@ def build_neighborlists(
     cg_atoms: List[str],
     embedding_map: CGEmbeddingMap,
     embedding_func: Callable,
+    martini_map: bool,
+    martini_ref: str,
     skip_residues: List[str],
     prior_tag: str,
     prior_builders: List[PriorBuilder],
@@ -198,11 +208,21 @@ def build_neighborlists(
             samples.name, pdb_template_fn
         )
 
+        if martini_map:
+            atomistic_ref_traj, atomistic_ref_top = sample_loader.get_traj_top(
+                samples.name, martini_ref
+            ) 
+        else:
+            atomistic_ref_traj = None
+            atomistic_ref_top = None
+
         samples.apply_cg_mapping(
             cg_atoms=cg_atoms,
             embedding_function=embedding_func,
             embedding_dict=embedding_map,
             skip_residues=skip_residues,
+            atomistic_ref_traj=atomistic_ref_traj,
+            atomistic_ref_top=atomistic_ref_top,
         )
 
         prior_nls = samples.get_prior_nls(

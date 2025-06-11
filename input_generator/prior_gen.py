@@ -7,10 +7,12 @@ from mlcg.nn.prior import (
     HarmonicAngles,
     Dihedral,
     Repulsion,
+    LennardJonesShifted,
     _Prior,
     GeneralBonds,
     GeneralAngles,
 )
+
 from mlcg.nn.gradients import GradientsOut
 
 from mlcg.data import AtomicData
@@ -66,7 +68,7 @@ class PriorBuilder:
         """
         return self.nl_builder(topology=topology)
 
-    def accumulate_statistics(self, nl_name: str, data: AtomicData) -> None:
+    def accumulate_statistics(self, nl_name: str, data: AtomicData, pbc: bool = False) -> None:
         """
         Computes atom-type specific features and calculates statistics from a collated
         AtomicData stucture
@@ -80,7 +82,10 @@ class PriorBuilder:
         """
         atom_types = data.atom_types
         mapping = data.neighbor_list[nl_name]["index_mapping"]
-        values = self.prior_cls.compute_features(data.pos, mapping)
+        if pbc:
+            values = self.prior_cls.compute_features(data.pos, mapping, pbc=data.pbc, cell=data.cell)
+        else:
+            values = self.prior_cls.compute_features(data.pos, mapping)
         if hasattr(data, "weights"):
             weights = data.weights
         else:
