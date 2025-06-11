@@ -80,7 +80,7 @@ def compute_statistics(
     weights_template_fn : str
         Template file location of weights to use for accumulating statistics
     mol_num_batches : int
-        If greater than 1, will save each molecule data into the specified number of batches 
+        If greater than 1, will save each molecule data into the specified number of batches
         that will be treated as different samples
     """
 
@@ -96,16 +96,21 @@ def compute_statistics(
         dataset, f"Compute histograms of CG data for {dataset_name} dataset..."
     ):
         if not samples.has_saved_cg_output(save_dir, prior_tag):
-            warnings.warn(f"Sample {samples.name} has no saved CG output - This entry will be skipped")
             continue
         if weights_template_fn != None and not osp.exists(
-                osp.join(save_dir, weights_template_fn.format(samples.name))
-                ):
-            warnings.warn(f"Could not find weights for sample {samples.name}; the file {osp.join(save_dir, weights_template_fn.format(samples.name))} does not exist. This entry will be skipped.")
+            osp.join(save_dir, weights_template_fn.format(samples.name))
+        ):
+            warnings.warn(
+                f"Could not find weights for sample {samples.name}; the file {osp.join(save_dir, weights_template_fn.format(samples.name))} does not exist. This entry will be skipped."
+            )
             continue
 
         batch_list = samples.load_cg_output_into_batches(
-            save_dir, prior_tag, batch_size, stride, weights_template_fn=weights_template_fn,
+            save_dir,
+            prior_tag,
+            batch_size,
+            stride,
+            weights_template_fn=weights_template_fn,
         )
         nl_names = set(batch_list[0].neighbor_list.keys())
 
@@ -114,20 +119,28 @@ def compute_statistics(
         ), f"some of the NL names '{nl_names}' in {dataset_name}:{samples.name} have not been registered in the nl_builder '{all_nl_names}'"
 
         if save_sample_statistics:
-            sample_fnout = osp.join(save_dir, f"{get_output_tag([samples.tag, samples.name, prior_tag, statistics_tag], placement='before')}prior_builders.pck")
+            sample_fnout = osp.join(
+                save_dir,
+                f"{get_output_tag([samples.tag, samples.name, prior_tag, statistics_tag], placement='before')}prior_builders.pck",
+            )
             sample_prior_builders = [
                 deepcopy(prior_builder) for prior_builder in prior_builders
             ]
 
             sample_nl_name2prior_builder = {}
-            for prior_builder in sample_prior_builders: 
+            for prior_builder in sample_prior_builders:
                 for nl_name in prior_builder.nl_builder.nl_names:
-                    if nl_name in prior_builder.histograms.data.keys() and nl_name not in nl_names: 
+                    if (
+                        nl_name in prior_builder.histograms.data.keys()
+                        and nl_name not in nl_names
+                    ):
                         prior_builder.histograms.data.pop(nl_name)
                     prior_builder.histograms.data[nl_name].clear()
                     sample_nl_name2prior_builder[nl_name] = prior_builder
 
-            for batch in tqdm(batch_list, f"molecule name: {samples.name}", leave=False):
+            for batch in tqdm(
+                batch_list, f"molecule name: {samples.name}", leave=False
+            ):
                 batch = batch.to(device)
                 for nl_name in nl_names:
                     prior_builder = sample_nl_name2prior_builder[nl_name]
@@ -135,8 +148,8 @@ def compute_statistics(
             
             with open(sample_fnout, "wb") as f:
                 pck.dump(sample_prior_builders, f)
-            
-            continue # does not save accumulated statistics if sample statistics saved
+
+            continue  # does not save accumulated statistics if sample statistics saved
 
         for batch in tqdm(batch_list, f"molecule name: {samples.name}", leave=False):
             batch = batch.to(device)
@@ -155,10 +168,13 @@ def compute_statistics(
                     dpi=300,
                     bbox_inches="tight",
                 )
-    
+
     if not save_sample_statistics:
         # cummulative statistics are only saved if individual statistics were not saved
-        fnout = osp.join(save_dir, f"{get_output_tag([samples.tag, prior_tag], placement='before')}prior_builders.pck")
+        fnout = osp.join(
+            save_dir,
+            f"{get_output_tag([samples.tag, prior_tag], placement='before')}prior_builders.pck",
+        )
         with open(fnout, "wb") as f:
             pck.dump(prior_builders, f)
 
