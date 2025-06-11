@@ -311,8 +311,8 @@ def slice_coord_forces(
     """
     config_map = LinearMap(cg_map)
     config_map_matrix = config_map.standard_matrix
-    # taking only first 100 frames gives same results in ~1/15th of time
-    constraints = guess_pairwise_constraints(coords[:100], threshold=5e-3)
+    # taking only first 100 frames every 2 frames gives same results in ~1/15th of time
+    constraints = guess_pairwise_constraints(coords[:100:2], threshold=5e-3)
     if isinstance(mapping, str):
         if mapping == "slice_aggregate":
             method = constraint_aware_uni_map

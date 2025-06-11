@@ -167,6 +167,9 @@ cython_debug/
 lip_data/*
 *pt
 sim/*
+sim2/*
+sim3/*
 mlcg-*
 sim_priors/*
 lip_data_popc/*
+lip_data_membrane/*
