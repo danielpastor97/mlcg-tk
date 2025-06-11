@@ -172,4 +172,5 @@ sim3/*
 mlcg-*
 sim_priors/*
 lip_data_popc/*
+lip_data_popc_n2/*
 lip_data_membrane/*
